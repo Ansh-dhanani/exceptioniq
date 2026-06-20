@@ -25,6 +25,14 @@ class TestZohoOAuthFlow:
         assert 'accounts.zoho.in/oauth/v2/auth' in res.url
         assert 'state=' + str(self.entity.id) in res.url
 
+    def test_zoho_connect_json(self):
+        url = reverse('integrations-zoho-connect')
+        res = self.admin_client.get(url, {'entity_id': self.entity.id, 'format': 'json'})
+        assert res.status_code == status.HTTP_200_OK
+        assert 'auth_url' in res.data
+        assert 'accounts.zoho.in/oauth/v2/auth' in res.data['auth_url']
+        assert 'state=' + str(self.entity.id) in res.data['auth_url']
+
     @patch('requests.post')
     @patch('requests.get')
     @patch.dict('os.environ', {

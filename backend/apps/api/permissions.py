@@ -40,7 +40,7 @@ ROLE_ACTION_MAP = {
     # Integrations
     'tally_sync':             {'admin', 'manager'},
     'zoho_sync':              {'admin', 'manager'},
-    'zoho_connect':           {'admin'},
+    'zoho_connect':           {'admin', 'manager'},
     'zoho_callback':          {'*'},
     'zoho_disconnect':        {'admin'},
 }

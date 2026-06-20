@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { client } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import { SyncJob, Entity } from '../types'
 
 interface AppContextType {
@@ -9,6 +10,7 @@ interface AppContextType {
 
 export default function Integrations() {
   const { entityId } = useOutletContext<AppContextType>()
+  const { user } = useAuth()
 
   const [entity, setEntity] = useState<Entity | null>(null)
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -29,6 +31,7 @@ export default function Integrations() {
   const [zohoFrom, setZohoFrom] = useState('')
   const [zohoTo, setZohoTo] = useState('')
   const [zohoSyncing, setZohoSyncing] = useState(false)
+  const [zohoConnecting, setZohoConnecting] = useState(false)
 
   // Jobs history list
   const [jobs, setJobs] = useState<SyncJob[]>([])
@@ -139,10 +142,36 @@ export default function Integrations() {
 
   const isZohoConnected = !!entity?.zoho_refresh_token
 
-  // Connect Zoho Books via OAuth flow
-  const handleConnectZoho = () => {
-    if (!entityId) return
-    window.location.href = `/api/v1/integrations/zoho/connect/?entity_id=${entityId}`
+  // Connect Zoho Books via OAuth flow (fetch auth URL with session cookie, then redirect)
+  const handleConnectZoho = async () => {
+    if (!entityId) {
+      toast.error('Select an active entity before connecting Zoho Books.')
+      return
+    }
+    if (user?.role !== 'admin' && user?.role !== 'manager') {
+      toast.error('Only Admin or Manager roles can connect Zoho Books.')
+      return
+    }
+
+    setZohoConnecting(true)
+    try {
+      const data = await client.get(
+        `/integrations/zoho/connect/?entity_id=${entityId}&format=json`
+      )
+      if (!data.auth_url) {
+        throw new Error('No authorization URL returned from server.')
+      }
+      window.location.assign(data.auth_url)
+    } catch (err: any) {
+      const msg = err.message || String(err)
+      if (msg.includes('Unauthorized') || msg.includes('403')) {
+        toast.error('Permission denied. Switch to Admin or Manager role and try again.')
+      } else {
+        toast.error(`Failed to start Zoho connection: ${msg}`)
+      }
+    } finally {
+      setZohoConnecting(false)
+    }
   }
 
   // Disconnect Zoho Books connection
@@ -339,11 +368,13 @@ export default function Integrations() {
                 Connect your Zoho Books cloud organization using secure OAuth 2.0 protocol to auto-fetch transaction bank statements.
               </p>
               <button
+                type="button"
                 onClick={handleConnectZoho}
                 className="btn btn-primary"
                 style={{ width: '100%', marginTop: '4px' }}
+                disabled={zohoConnecting}
               >
-                🔗 Connect Zoho Books
+                {zohoConnecting ? 'Redirecting to Zoho...' : '🔗 Connect Zoho Books'}
               </button>
             </div>
           )}

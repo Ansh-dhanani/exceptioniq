@@ -190,11 +190,13 @@ class IntegrationsViewSet(viewsets.ViewSet):
             entity_id = request.query_params.get('entity_id')
             frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
             if not entity_id:
+                if request.query_params.get('format') == 'json':
+                    return Response({'error': 'entity_id is required'}, status=status.HTTP_400_BAD_REQUEST)
                 return redirect(f"{frontend_url}/integrations?zoho=error&reason=entity_not_found")
-            
+
             client_id = os.environ.get('ZOHO_CLIENT_ID', '').strip()
             redirect_uri = os.environ.get('ZOHO_REDIRECT_URI', '').strip()
-            
+
             auth_url = (
                 f"https://accounts.zoho.in/oauth/v2/auth?"
                 f"scope=ZohoBooks.fullaccess.all&"
@@ -205,6 +207,8 @@ class IntegrationsViewSet(viewsets.ViewSet):
                 f"state={entity_id}&"
                 f"prompt=consent"
             )
+            if request.query_params.get('format') == 'json':
+                return Response({'auth_url': auth_url})
             return redirect(auth_url)
         else:
             # POST method - legacy manual configuration
