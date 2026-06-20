@@ -144,7 +144,7 @@ class ExceptionViewSet(viewsets.ModelViewSet):
             exception.save(update_fields=['assigned_to', 'updated_at'])
             AuditLog.objects.create(exception=exception, user=request.user, action='reassigned', metadata={'assigned_to': user.username})
             return Response(ExceptionRecordSerializer(exception).data)
-        except User.DoesNotExist:
+        except (ValueError, TypeError, User.DoesNotExist):
             return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], url_path='ai-summary')

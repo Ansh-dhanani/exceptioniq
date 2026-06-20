@@ -16,3 +16,6 @@ pgdata/
 postgres_data/
 frontend/package-lock.json
 
+# Test suites temporary/source folders
+exceptioniq_tests/
+exceptioniq_tests.zip

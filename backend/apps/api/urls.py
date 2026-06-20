@@ -8,6 +8,7 @@ from .views import (
 router = DefaultRouter()
 router.register('entities', EntityViewSet, basename='entities')
 router.register('routing/rules', RoutingRuleViewSet, basename='routing-rules')
+router.register('routing-rules', RoutingRuleViewSet, basename='routing-rules-alt')
 router.register('exceptions', ExceptionViewSet, basename='exceptions')
 router.register('recon', ReconciliationViewSet, basename='recon')
 router.register('users', UserViewSet, basename='users')

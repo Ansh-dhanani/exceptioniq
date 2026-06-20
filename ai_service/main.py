@@ -4,7 +4,7 @@ import re
 import json
 from typing import Optional, List
 import fitz
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -108,7 +108,10 @@ def health():
 @app.post('/parse-document')
 async def parse_document(file: UploadFile = File(...)):
     content = await file.read()
-    doc = fitz.open(stream=content, filetype='pdf')
+    try:
+        doc = fitz.open(stream=content, filetype='pdf')
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid PDF file: {str(e)}")
     chunks = []
     for page in doc:
         chunks.append(page.get_text('text'))
@@ -119,7 +122,10 @@ async def parse_document(file: UploadFile = File(...)):
 @app.post('/parse-bank-pdf')
 async def parse_bank_pdf(file: UploadFile = File(...)):
     content = await file.read()
-    doc = fitz.open(stream=content, filetype='pdf')
+    try:
+        doc = fitz.open(stream=content, filetype='pdf')
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid PDF file: {str(e)}")
     full_text = '\n'.join(page.get_text('text') for page in doc)
     rows = _extract_rows(full_text)
     return {

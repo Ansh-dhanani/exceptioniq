@@ -18,13 +18,23 @@ def detect_bank_exceptions(entity, amount_tolerance=Decimal('0.00')):
 
     for bank_line in BankStatementLine.objects.filter(entity=entity).order_by('txn_date', 'amount'):
         candidate = None
+        # First pass: Match by reference if it exists and matches
         for ledger in ledger_entries:
             if ledger.id in used_ledger_ids:
                 continue
-            amount_diff = abs(ledger.amount - bank_line.amount)
-            if amount_diff <= amount_tolerance:
+            if ledger.reference and bank_line.reference and normalize_reference(ledger.reference) == normalize_reference(bank_line.reference):
                 candidate = ledger
                 break
+        
+        # Second pass: Fall back to exact amount match
+        if not candidate:
+            for ledger in ledger_entries:
+                if ledger.id in used_ledger_ids:
+                    continue
+                amount_diff = abs(ledger.amount - bank_line.amount)
+                if amount_diff <= amount_tolerance:
+                    candidate = ledger
+                    break
         if not candidate:
             exc = ExceptionRecord.objects.create(
                 entity=entity,
