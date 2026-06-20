@@ -13,6 +13,30 @@ interface Props {
 export default function ApproverDashboard({ entityId, user }: Props) {
   const [exceptions, setExceptions] = useState<ExceptionRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportPDF = async () => {
+    setExporting(true)
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/exceptions/export-pdf-report/', {
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error('Failed to generate report')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'exceptioniq_executive_report.pdf'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert(`Export failed: ${err.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const fetchData = async () => {
     if (!entityId || !user) return
@@ -64,9 +88,19 @@ export default function ApproverDashboard({ entityId, user }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Approver Console ✍️</h1>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Verify resolved exceptions and review escalated issues.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Approver Console ✍️</h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Verify resolved exceptions and review escalated issues.</p>
+        </div>
+        <button 
+          onClick={handleExportPDF} 
+          disabled={exporting}
+          className="btn btn-primary"
+          style={{ padding: '10px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          {exporting ? 'Generating Report...' : '📄 Export Executive Report'}
+        </button>
       </div>
 
       {/* Stats row */}

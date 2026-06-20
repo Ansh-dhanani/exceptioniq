@@ -15,6 +15,30 @@ export default function ManagerDashboard({ entityId, user }: Props) {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportPDF = async () => {
+    setExporting(true)
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/exceptions/export-pdf-report/', {
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error('Failed to generate report')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'exceptioniq_executive_report.pdf'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert(`Export failed: ${err.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const fetchData = async () => {
     if (!entityId) return
@@ -129,9 +153,19 @@ export default function ManagerDashboard({ entityId, user }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Operations Manager Dashboard 📈</h1>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Monitor queue health, SLA breaches, and balance team resource allocation.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Operations Manager Dashboard 📈</h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Monitor queue health, SLA breaches, and balance team resource allocation.</p>
+        </div>
+        <button 
+          onClick={handleExportPDF} 
+          disabled={exporting}
+          className="btn btn-primary"
+          style={{ padding: '10px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          {exporting ? 'Generating Report...' : '📄 Export Executive Report'}
+        </button>
       </div>
 
       {/* Metrics Row */}

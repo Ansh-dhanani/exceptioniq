@@ -10,6 +10,7 @@ ROLE_ACTION_MAP = {
     'bank_upload':    {'admin', 'manager', 'analyst'},
     'bank_run':       {'admin', 'manager', 'analyst'},
     'bank_clear':     {'admin'},
+    'export_pdf_report': {'admin', 'manager', 'approver'},
     'create':         {'admin'},
     'update':         {'admin'},
     'partial_update': {'admin'},

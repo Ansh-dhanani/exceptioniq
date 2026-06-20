@@ -8,3 +8,5 @@ celery==5.4.0
 django-celery-results==2.5.1
 python-dotenv==1.0.1
 django-cors-headers==4.4.0
+reportlab==5.0.0
+

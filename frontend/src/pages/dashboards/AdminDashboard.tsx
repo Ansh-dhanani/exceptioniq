@@ -17,6 +17,30 @@ export default function AdminDashboard({ entityId, user }: Props) {
   const [rules, setRules] = useState<RoutingRule[]>([])
   const [djangoHealth, setDjangoHealth] = useState<'live' | 'offline'>('live')
   const [fastapiHealth, setFastapiHealth] = useState<'checking' | 'live' | 'offline'>('checking')
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportPDF = async () => {
+    setExporting(true)
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/exceptions/export-pdf-report/', {
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error('Failed to generate report')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'exceptioniq_executive_report.pdf'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert(`Export failed: ${err.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
   
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -143,16 +167,27 @@ export default function AdminDashboard({ entityId, user }: Props) {
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Global system settings, environment statuses, and entity performance.</p>
         </div>
         
-        {/* System Health Indicators */}
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
-            Django API: <span style={{ fontWeight: 600, color: djangoHealth === 'live' ? '#059669' : '#dc2626' }}>{djangoHealth.toUpperCase()}</span>
-          </div>
-          <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
-            FastAPI: <span style={{ fontWeight: 600, color: fastapiHealth === 'live' ? '#059669' : '#dc2626' }}>{fastapiHealth.toUpperCase()}</span>
-          </div>
-          <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
-            Database: <span style={{ fontWeight: 600, color: djangoHealth === 'live' ? '#059669' : '#dc2626' }}>ONLINE</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            onClick={handleExportPDF} 
+            disabled={exporting}
+            className="btn btn-primary"
+            style={{ padding: '10px 16px', fontSize: '13px' }}
+          >
+            {exporting ? 'Generating...' : '📄 Export Report'}
+          </button>
+          
+          {/* System Health Indicators */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
+              Django API: <span style={{ fontWeight: 600, color: djangoHealth === 'live' ? '#059669' : '#dc2626' }}>{djangoHealth.toUpperCase()}</span>
+            </div>
+            <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
+              FastAPI: <span style={{ fontWeight: 600, color: fastapiHealth === 'live' ? '#059669' : '#dc2626' }}>{fastapiHealth.toUpperCase()}</span>
+            </div>
+            <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
+              Database: <span style={{ fontWeight: 600, color: djangoHealth === 'live' ? '#059669' : '#dc2626' }}>ONLINE</span>
+            </div>
           </div>
         </div>
       </div>

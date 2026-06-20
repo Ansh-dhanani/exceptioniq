@@ -175,6 +175,357 @@ class ExceptionViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'summary': f"Error calling AI Service: {str(e)}"})
 
+    @action(detail=False, methods=['get'], url_path='export-pdf-report')
+    def export_pdf_report(self, request):
+        import io
+        from django.http import HttpResponse
+        from django.utils import timezone
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        
+        exceptions = ExceptionRecord.objects.all().order_by('created_at')
+        total_count = exceptions.count()
+        
+        status_counts = {
+            'detected': exceptions.filter(status='detected').count(),
+            'routed': exceptions.filter(status='routed').count(),
+            'investigating': exceptions.filter(status='investigating').count(),
+            'pending_approval': exceptions.filter(status='pending_approval').count(),
+            'resolved': exceptions.filter(status='resolved').count(),
+            'approved': exceptions.filter(status='approved').count(),
+            'closed': exceptions.filter(status='closed').count(),
+        }
+        
+        open_count = status_counts['detected'] + status_counts['routed'] + status_counts['investigating'] + status_counts['pending_approval']
+        closed_count = status_counts['resolved'] + status_counts['approved'] + status_counts['closed']
+        
+        now = timezone.now()
+        urgent_count = exceptions.filter(status__in=['detected', 'routed', 'investigating'], sla_deadline__lt=now).count()
+        
+        total_aging_days = 0
+        aging_counts = {
+            '0-2 Days': 0,
+            '3-5 Days': 0,
+            '6-10 Days': 0,
+            '10+ Days': 0,
+        }
+        
+        resolved_exceptions = []
+        open_exceptions = []
+        
+        for exc in exceptions:
+            age_td = now - exc.created_at
+            age_days = max(0, age_td.days)
+            if age_days <= 2:
+                aging_counts['0-2 Days'] += 1
+            elif age_days <= 5:
+                aging_counts['3-5 Days'] += 1
+            elif age_days <= 10:
+                aging_counts['6-10 Days'] += 1
+            else:
+                aging_counts['10+ Days'] += 1
+                
+            if exc.resolved_at:
+                resolved_exceptions.append(max(0, (exc.resolved_at - exc.created_at).days))
+            else:
+                open_exceptions.append(age_days)
+                
+        avg_res_days = (sum(resolved_exceptions) / len(resolved_exceptions)) if resolved_exceptions else 0.0
+        avg_open_days = (sum(open_exceptions) / len(open_exceptions)) if open_exceptions else 0.0
+        
+        type_counts = {}
+        for exc in exceptions:
+            t = exc.reconciliation_type.upper()
+            type_counts[t] = type_counts.get(t, 0) + 1
+            
+        critical_exceptions = exceptions.filter(status__in=['detected', 'routed', 'investigating']).order_by('-severity', 'created_at')[:5]
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="exceptioniq_executive_report.pdf"'
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=letter,
+            rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=54
+        )
+        
+        styles = getSampleStyleSheet()
+        
+        title_style = ParagraphStyle(
+            'DocTitle',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=22,
+            leading=26,
+            textColor=colors.HexColor('#1E3A8A'),
+            spaceAfter=6
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'DocSubtitle',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=11,
+            leading=14,
+            textColor=colors.HexColor('#64748B'),
+            spaceAfter=20
+        )
+        
+        h1_style = ParagraphStyle(
+            'H1Style',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=13,
+            leading=16,
+            textColor=colors.HexColor('#1E3A8A'),
+            spaceBefore=14,
+            spaceAfter=6,
+            keepWithNext=True
+        )
+        
+        body_style = ParagraphStyle(
+            'BodyStyle',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=9.5,
+            leading=13.5,
+            textColor=colors.HexColor('#0F172A'),
+            spaceAfter=8
+        )
+
+        bold_body_style = ParagraphStyle(
+            'BoldBodyStyle',
+            parent=body_style,
+            fontName='Helvetica-Bold'
+        )
+        
+        meta_label_style = ParagraphStyle(
+            'MetaLabel',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=9,
+            leading=11,
+            textColor=colors.HexColor('#475569')
+        )
+        
+        meta_val_style = ParagraphStyle(
+            'MetaVal',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=9,
+            leading=11,
+            textColor=colors.HexColor('#0F172A')
+        )
+        
+        th_style = ParagraphStyle(
+            'TableHeader',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=9,
+            leading=11,
+            textColor=colors.white
+        )
+        
+        td_style = ParagraphStyle(
+            'TableCell',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=8.5,
+            leading=11,
+            textColor=colors.HexColor('#0F172A')
+        )
+
+        bullet_style = ParagraphStyle(
+            'BulletText',
+            parent=body_style,
+            leftIndent=15,
+            firstLineIndent=-10,
+            spaceAfter=5
+        )
+
+        story = []
+        
+        story.append(Paragraph("EXCEPTIONIQ EXECUTIVE PERFORMANCE REPORT", title_style))
+        story.append(Paragraph("Strategic Operations Summary, SLA Compliance & AI Gap Assessment", subtitle_style))
+        
+        meta_data = [
+            [Paragraph("Report Scope:", meta_label_style), Paragraph("Global Reconciliation Exceptions & Turnaround Analysis", meta_val_style),
+             Paragraph("Generated On:", meta_label_style), Paragraph(timezone.now().strftime("%Y-%m-%d %H:%M:%S UTC"), meta_val_style)],
+            [Paragraph("Target Audience:", meta_label_style), Paragraph("Chief Financial Officer / Operations Management", meta_val_style),
+             Paragraph("Generated By:", meta_label_style), Paragraph(f"{request.user.username} ({request.user.role.upper()})", meta_val_style)]
+        ]
+        meta_table = Table(meta_data, colWidths=[90, 160, 90, 160])
+        meta_table.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('TOPPADDING', (0,0), (-1,-1), 2),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(meta_table)
+        story.append(Spacer(1, 15))
+        
+        divider = Table([[""]], colWidths=[504])
+        divider.setStyle(TableStyle([
+            ('LINEBELOW', (0,0), (-1,-1), 1.5, colors.HexColor('#0EA5E9')),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(divider)
+        story.append(Spacer(1, 15))
+        
+        story.append(Paragraph("1. Key Performance Indicators (KPIs)", h1_style))
+        
+        kpi_data = [
+            [
+                Paragraph("<b>TOTAL EXCEPTIONS</b><br/><font size=14 color='#1E3A8A'>%d</font>" % total_count, body_style),
+                Paragraph("<b>OPEN INVESTIGATIONS</b><br/><font size=14 color='#E11D48'>%d</font>" % open_count, body_style),
+                Paragraph("<b>SLA BREACHED / URGENT</b><br/><font size=14 color='#D97706'>%d</font>" % urgent_count, body_style),
+                Paragraph("<b>AVG OPEN LIFE</b><br/><font size=14 color='#0284C7'>%.1f Days</font>" % avg_open_days, body_style)
+            ]
+        ]
+        kpi_table = Table(kpi_data, colWidths=[126, 126, 126, 126])
+        kpi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#F8FAFC')),
+            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#E2E8F0')),
+            ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 10),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ]))
+        story.append(kpi_table)
+        story.append(Spacer(1, 15))
+        
+        story.append(Paragraph("2. Exception Aging Distribution", h1_style))
+        
+        aging_rows = [
+            [Paragraph("Aging Bracket", th_style), Paragraph("Record Count", th_style), Paragraph("Percentage", th_style)]
+        ]
+        for bracket, count in aging_counts.items():
+            pct = (count / total_count * 100) if total_count > 0 else 0.0
+            aging_rows.append([
+                Paragraph(bracket, td_style),
+                Paragraph(str(count), td_style),
+                Paragraph("%.1f%%" % pct, td_style)
+            ])
+            
+        aging_table = Table(aging_rows, colWidths=[168, 168, 168])
+        aging_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E3A8A')),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8FAFC')]),
+            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#E2E8F0')),
+            ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ]))
+        story.append(aging_table)
+        story.append(Spacer(1, 15))
+        
+        story.append(Paragraph("3. Operational Gap & AI Strategic Assessment", h1_style))
+        
+        gaps = []
+        resolutions = []
+        
+        if urgent_count > 0:
+            gaps.append("<b>SLA Turnaround Lags:</b> There are currently <b>%d</b> exceptions that have surpassed their SLA deadlines. This indicates a high backlog in analyst investigation queues." % urgent_count)
+            resolutions.append("Configure dynamic notifications and auto-escalation path triggers to alert managers when an open exception is within 8 hours of breaching.")
+        else:
+            gaps.append("<b>SLA Turnaround:</b> Current SLA compliance is nominal, with 0 outstanding breaches. Turnaround velocity is stable.")
+            
+        if avg_open_days > 5:
+            gaps.append("<b>Cycle-Time Excess:</b> The average age of open exceptions is <b>%.1f days</b>. The industry standard target is 2.0 days. Long-tail unresolved items lead to audit exposure." % avg_open_days)
+            resolutions.append("Adopt auto-reconciliation thresholds to auto-close exceptions below a nominal write-off amount (e.g. < $5.00), reducing manual load.")
+        else:
+            gaps.append("<b>Cycle-Time Efficiency:</b> Cycle times are currently healthy with an average age of <b>%.1f days</b>." % avg_open_days)
+            
+        missing_ledger_count = exceptions.filter(reconciliation_type__iexact='missing_ledger').count()
+        if missing_ledger_count > 0:
+            pct_missing = (missing_ledger_count / total_count * 100) if total_count > 0 else 0.0
+            if pct_missing > 30:
+                gaps.append("<b>Data Upload Asymmetry:</b> Missing Ledger entries constitute <b>%.1f%%</b> of all discrepancies. This indicates that bank statement updates are ingested faster than ERP ledger exports." % pct_missing)
+                resolutions.append("Integrate direct daily batch synchronizations from the general ledger database (ERP system) to replace manual CSV uploads, aligning data sync cycles.")
+                
+        pending_appr_count = status_counts['pending_approval']
+        if pending_appr_count > 2:
+            gaps.append("<b>Maker-Checker Bottleneck:</b> There are <b>%d</b> exceptions awaiting manager/approver review in the <i>pending_approval</i> state." % pending_appr_count)
+            resolutions.append("Establish dual-approval policies for high-value items only, letting low-value Maker resolutions auto-approve immediately upon submission.")
+            
+        if not resolutions:
+            gaps.append("<b>Data Sync Alignment:</b> System operations are performing optimally. Exception volumes are distributed evenly.")
+            resolutions.append("Enable machine learning routing rules to predict category owners based on historic reassignments, optimizing workflow efficiency.")
+
+        story.append(Paragraph("<b>Operational Gaps Identified (Where & What is Lacking):</b>", bold_body_style))
+        for g in gaps:
+            story.append(Paragraph("• %s" % g, bullet_style))
+            
+        story.append(Spacer(1, 5))
+        story.append(Paragraph("<b>Actionable Remediation Roadmap (How to Resolve):</b>", bold_body_style))
+        for r in resolutions:
+            story.append(Paragraph("• %s" % r, bullet_style))
+            
+        story.append(Spacer(1, 15))
+        
+        story.append(Paragraph("4. High-Priority Action Items (Top 5 Oldest Open Exceptions)", h1_style))
+        
+        action_rows = [
+            [
+                Paragraph("ID", th_style), 
+                Paragraph("Entity", th_style), 
+                Paragraph("Type", th_style), 
+                Paragraph("Diff Amount", th_style), 
+                Paragraph("Age", th_style), 
+                Paragraph("Owner", th_style)
+            ]
+        ]
+        
+        for exc in critical_exceptions:
+            age_days = (now - exc.created_at).days
+            owner_name = exc.assigned_to.username if exc.assigned_to else "Unassigned"
+            action_rows.append([
+                Paragraph(str(exc.id)[:8], td_style),
+                Paragraph(exc.entity.name, td_style),
+                Paragraph(exc.reconciliation_type.upper(), td_style),
+                Paragraph(f"{exc.amount_difference:,.2f}", td_style),
+                Paragraph(f"{age_days} Days", td_style),
+                Paragraph(owner_name, td_style)
+            ])
+            
+        if len(action_rows) == 1:
+            action_rows.append([Paragraph("No critical open exceptions found.", td_style), "", "", "", "", ""])
+            
+        action_table = Table(action_rows, colWidths=[65, 95, 100, 85, 60, 99])
+        action_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E3A8A')),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8FAFC')]),
+            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#E2E8F0')),
+            ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ]))
+        story.append(action_table)
+
+        def add_footer(canvas, doc_obj):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 8)
+            canvas.setFillColor(colors.HexColor('#64748B'))
+            canvas.drawString(54, 30, "ExceptionIQ Executive Report — Confidential")
+            canvas.drawRightString(612 - 54, 30, f"Page {doc_obj.page}")
+            canvas.restoreState()
+            
+        doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
+        
+        pdf = buffer.getvalue()
+        buffer.close()
+        response.write(pdf)
+        return response
+
 class ReconciliationViewSet(viewsets.ViewSet):
     permission_classes = [RolePermission]
 
