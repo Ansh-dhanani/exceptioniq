@@ -21,8 +21,8 @@ export default function Ingestion() {
   
   // PDF state
   const [pdfFile, setPdfFile] = useState<File | null>(null)
-  const [pdfParsing, setPdfParsing] = useState(false)
-  const [parsedMarkdown, setParsedMarkdown] = useState('')
+  const [parsing, setParsing] = useState(false)
+  const [previewRows, setPreviewRows] = useState<any[]>([])
 
   // Handle CSV file selection and reading
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'bank' | 'ledger') => {
@@ -109,24 +109,83 @@ export default function Ingestion() {
     e.preventDefault()
     if (!pdfFile) return
     
-    setPdfParsing(true)
-    setParsedMarkdown('')
+    setParsing(true)
+    setPreviewRows([])
     
     const formData = new FormData()
     formData.append('file', pdfFile)
 
     try {
-      const res = await fetch('http://localhost:8001/parse-document', {
+      const res = await fetch('http://localhost:8001/parse-bank-pdf', {
         method: 'POST',
         body: formData
       })
-      if (!res.ok) throw new Error('PDF parsing failed')
+      if (!res.ok) throw new Error('PDF parsing failed on AI service')
       const data = await res.json()
-      setParsedMarkdown(data.markdown || 'No text extracted.')
+      setPreviewRows(data.rows || [])
+      if (data.rows?.length === 0) {
+        alert('PDF parsed successfully, but no rows matches were extracted.')
+      }
     } catch (err: any) {
-      setParsedMarkdown(`Error: ${err.message}`)
+      alert(`PDF Ingestion Error: ${err.message}`)
     } finally {
-      setPdfParsing(false)
+      setParsing(false)
+    }
+  }
+
+  const handleCellChange = (index: number, field: string, value: any) => {
+    const updated = [...previewRows]
+    if (field === 'amount') {
+      const parsedVal = parseFloat(value) || 0
+      updated[index][field] = parsedVal
+      if (parsedVal > 0 && updated[index].debit_credit !== 'unknown') {
+        updated[index].needs_review = false
+      }
+    } else if (field === 'debit_credit') {
+      updated[index][field] = value
+      if (value !== 'unknown' && updated[index].amount > 0) {
+        updated[index].needs_review = false
+      }
+    } else {
+      updated[index][field] = value
+    }
+    setPreviewRows(updated)
+  }
+
+  const handleDeleteRow = (index: number) => {
+    setPreviewRows(previewRows.filter((_, idx) => idx !== index))
+  }
+
+  const handleConfirmUpload = async () => {
+    if (!entityId) {
+      alert('Please select an active entity first.')
+      return
+    }
+    if (previewRows.length === 0) return
+
+    setUploading(true)
+    try {
+      const rows = previewRows.map(r => ({
+        txn_date: r.txn_date,
+        amount: r.debit_credit === 'debit' ? -Math.abs(r.amount) : Math.abs(r.amount),
+        reference: r.reference || '',
+        counterparty: r.counterparty || '',
+        narration: r.narration || '',
+      }))
+
+      await client.post('/recon/bank/upload/', {
+        entity_id: entityId,
+        rows,
+        source_type: 'bank'
+      })
+
+      alert('Parsed bank statement rows ingested successfully!')
+      setPreviewRows([])
+      setPdfFile(null)
+    } catch (err: any) {
+      alert(`Ingestion failed: ${err.message || err}`)
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -229,8 +288,8 @@ export default function Ingestion() {
         {/* PDF Extraction Column */}
         <div>
           <div className="card">
-            <h2>AI Document Parsing</h2>
-            <p style={{ fontSize: '13px', marginBottom: '16px' }}>Convert unstructured PDF statements or invoices into structured Markdown using the FastAPI AI service pipeline.</p>
+            <h2>PDF Bank Statement Ingestion</h2>
+            <p style={{ fontSize: '13px', marginBottom: '16px' }}>Upload a statement PDF (HDFC, SBI, ICICI, Axis, Kotak). Our AI parser extracts dates, amounts, and narrations for review.</p>
             
             <form onSubmit={handlePdfUpload}>
               <div className="form-group">
@@ -259,23 +318,147 @@ export default function Ingestion() {
                 type="submit" 
                 className="btn btn-secondary" 
                 style={{ width: '100%' }}
-                disabled={pdfParsing || !pdfFile}
+                disabled={parsing || !pdfFile}
               >
-                {pdfParsing ? 'Parsing PDF Document...' : '✨ Parse PDF to Markdown'}
+                {parsing ? 'Parsing PDF Document...' : '✨ Process PDF Statement'}
               </button>
             </form>
-
-            {parsedMarkdown && (
-              <div style={{ marginTop: '20px' }}>
-                <label className="form-label">Extracted Markdown Output</label>
-                <div style={{ background: '#f9fafb', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '12px', height: '260px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '11px', whiteSpace: 'pre-wrap' }}>
-                  {parsedMarkdown}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Full-width Editable Preview Table */}
+      {previewRows.length > 0 && (
+        <div className="card" style={{ marginTop: '24px', padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>Editable Preview Table ({previewRows.length} lines parsed)</h2>
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Verify extracted data. Highlighted rows ⚠️ have incomplete fields needing manual review.</p>
+            </div>
+            <button
+              onClick={handleConfirmUpload}
+              className="btn btn-primary"
+              style={{ padding: '8px 16px', background: '#059669' }}
+              disabled={uploading}
+            >
+              {uploading ? 'Uploading...' : '✔️ Confirm & Upload Ingest'}
+            </button>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
+                  <th style={{ padding: '10px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', width: '60px' }}>Status</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Txn Date</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', width: '130px' }}>Amount (₹)</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', width: '110px' }}>Type</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Reference</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Counterparty</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Narration</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', width: '60px' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.map((row, idx) => (
+                  <tr 
+                    key={idx} 
+                    style={{ 
+                      borderBottom: '1px solid var(--color-border)', 
+                      background: row.needs_review ? '#fffbeb' : '#fff' 
+                    }}
+                  >
+                    {/* Status Indicator */}
+                    <td style={{ padding: '8px 16px', textAlign: 'center', fontSize: '16px' }}>
+                      {row.needs_review ? (
+                        <span title="Requires Review" style={{ cursor: 'help' }}>⚠️</span>
+                      ) : (
+                        <span title="Ready" style={{ cursor: 'default' }}>✅</span>
+                      )}
+                    </td>
+                    
+                    {/* Date */}
+                    <td style={{ padding: '6px 12px' }}>
+                      <input 
+                        type="text" 
+                        value={row.txn_date} 
+                        onChange={(e) => handleCellChange(idx, 'txn_date', e.target.value)}
+                        style={{ width: '100%', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                      />
+                    </td>
+
+                    {/* Amount */}
+                    <td style={{ padding: '6px 12px' }}>
+                      <input 
+                        type="number" 
+                        value={row.amount} 
+                        onChange={(e) => handleCellChange(idx, 'amount', e.target.value)}
+                        style={{ width: '100%', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'right', fontSize: '12px' }}
+                      />
+                    </td>
+
+                    {/* Debit/Credit Type */}
+                    <td style={{ padding: '6px 12px' }}>
+                      <select
+                        value={row.debit_credit}
+                        onChange={(e) => handleCellChange(idx, 'debit_credit', e.target.value)}
+                        style={{ width: '100%', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px', background: '#fff' }}
+                      >
+                        <option value="debit">debit (Dr)</option>
+                        <option value="credit">credit (Cr)</option>
+                        <option value="unknown">unknown</option>
+                      </select>
+                    </td>
+
+                    {/* Reference */}
+                    <td style={{ padding: '6px 12px' }}>
+                      <input 
+                        type="text" 
+                        value={row.reference || ''} 
+                        onChange={(e) => handleCellChange(idx, 'reference', e.target.value)}
+                        placeholder="Ref No..."
+                        style={{ width: '100%', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                      />
+                    </td>
+
+                    {/* Counterparty */}
+                    <td style={{ padding: '6px 12px' }}>
+                      <input 
+                        type="text" 
+                        value={row.counterparty || ''} 
+                        onChange={(e) => handleCellChange(idx, 'counterparty', e.target.value)}
+                        placeholder="Party..."
+                        style={{ width: '100%', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                      />
+                    </td>
+
+                    {/* Narration */}
+                    <td style={{ padding: '6px 12px' }}>
+                      <input 
+                        type="text" 
+                        value={row.narration} 
+                        onChange={(e) => handleCellChange(idx, 'narration', e.target.value)}
+                        style={{ width: '100%', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                      />
+                    </td>
+
+                    {/* Delete Action */}
+                    <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+                      <button 
+                        onClick={() => handleDeleteRow(idx)}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px', padding: 0 }}
+                        title="Remove row"
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

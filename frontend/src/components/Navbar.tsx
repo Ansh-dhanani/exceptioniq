@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { client } from '../api/client'
 import { Entity } from '../types'
+import { useAuth } from '../context/AuthContext'
 
 interface NavbarProps {
   entityId: string
@@ -15,6 +16,7 @@ export default function Navbar({
   currentUserRole,
   setCurrentUserRole
 }: NavbarProps) {
+  const { user, login, logout } = useAuth()
   const [entities, setEntities] = useState<Entity[]>([])
   const [health, setHealth] = useState<'checking' | 'live' | 'offline'>('checking')
   const [resetting, setResetting] = useState(false)
@@ -25,7 +27,6 @@ export default function Navbar({
   const fetchEntities = async () => {
     try {
       const data = await client.get('/entities/')
-      // DRF list views return standard arrays or paginated results
       const list = Array.isArray(data) ? data : data.results || []
       setEntities(list)
       if (list.length > 0 && !entityId) {
@@ -50,14 +51,12 @@ export default function Navbar({
     return () => clearInterval(interval)
   }, [])
 
-  // Auto-select entity if entity list changes
   useEffect(() => {
     if (entities.length > 0 && !entityId) {
       setEntityId(entities[0].id)
     }
   }, [entities, entityId])
 
-  // Handle DB reset
   const handleResetDb = async () => {
     if (!entityId) return
     if (!window.confirm('Are you sure you want to reset all reconciliation and exception data for this entity? This will wipe the tables.')) return
@@ -71,6 +70,15 @@ export default function Navbar({
       alert(`Reset failed: ${err.message || err}`)
     } finally {
       setResetting(false)
+    }
+  }
+
+  const handleRoleChange = async (newRole: string) => {
+    try {
+      await login(newRole, newRole)
+      window.location.reload()
+    } catch (err: any) {
+      alert(`Bypass sign in failed: ${err.message || err}`)
     }
   }
 
@@ -94,6 +102,31 @@ export default function Navbar({
       </div>
 
       <div className="navbar-right">
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', borderRight: '1px solid var(--color-border)', paddingRight: '16px', marginRight: '8px' }}>
+            <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>👤 @{user.username}</span>
+            <span style={{
+              fontSize: '10px',
+              background: '#eff6ff',
+              color: '#1d4ed8',
+              border: '1px solid #bfdbfe',
+              padding: '2px 6px',
+              borderRadius: '3px',
+              fontWeight: 700,
+              textTransform: 'uppercase'
+            }}>
+              {user.role}
+            </span>
+            <button 
+              onClick={logout} 
+              className="btn btn-secondary" 
+              style={{ padding: '4px 8px', fontSize: '11px', height: '26px', display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', background: '#fff', cursor: 'pointer' }}
+            >
+              Sign Out
+            </button>
+          </div>
+        )}
+
         {health === 'live' ? (
           <span className="badge-live">Live</span>
         ) : (
@@ -105,7 +138,7 @@ export default function Navbar({
             <label className="form-label" style={{ margin: 0, fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Role Switcher:</label>
             <select 
               value={currentUserRole} 
-              onChange={(e) => setCurrentUserRole(e.target.value)}
+              onChange={(e) => handleRoleChange(e.target.value)}
               className="user-switcher"
             >
               <option value="admin">🔑 Admin</option>

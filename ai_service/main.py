@@ -2,17 +2,16 @@ import io
 import os
 import re
 import json
-from typing import Optional
+from typing import Optional, List
 import fitz
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 try:
     from groq import Groq
 except Exception:
     Groq = None
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title='ExceptionIQ AI Service')
 
@@ -38,6 +37,65 @@ class ClassifyPayload(BaseModel):
     ledger_party: str = ''
     bank_party: str = ''
 
+class ParsedRow(BaseModel):
+    txn_date: str
+    amount: float
+    debit_credit: str   # "debit" or "credit"
+    reference: str
+    narration: str
+    counterparty: str
+    needs_review: bool
+
+DATE_PATTERN = re.compile(
+    r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{2}-[A-Za-z]{3}-\d{4})\b'
+)
+AMOUNT_PATTERN = re.compile(r'[\d,]+\.\d{2}(?:\s*(?:Dr|Cr|dr|cr))?')
+
+def _parse_amount(raw: str) -> tuple[float, str]:
+    raw = raw.replace(',', '').strip()
+    if raw.lower().endswith('dr'):
+        try:
+            return float(re.sub(r'[^\d.]', '', raw)), 'debit'
+        except ValueError:
+            return 0.0, 'unknown'
+    if raw.lower().endswith('cr'):
+        try:
+            return float(re.sub(r'[^\d.]', '', raw)), 'credit'
+        except ValueError:
+            return 0.0, 'unknown'
+    try:
+        return float(re.sub(r'[^\d.]', '', raw)), 'credit'
+    except ValueError:
+        return 0.0, 'unknown'
+
+def _extract_rows(text: str) -> List[ParsedRow]:
+    rows = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or len(line) < 10:
+            continue
+        date_match = DATE_PATTERN.search(line)
+        amount_matches = AMOUNT_PATTERN.findall(line)
+        if not date_match or not amount_matches:
+            continue
+        # Use amount_matches[-2] if multiple amounts exist (e.g. txn amount and balance), otherwise amount_matches[0]
+        raw_amount = amount_matches[-2] if len(amount_matches) >= 2 else amount_matches[0]
+        amount, dc = _parse_amount(raw_amount)
+        
+        narration = line[date_match.end():].strip()
+        for amt in amount_matches:
+            narration = narration.replace(amt, '').strip()
+            
+        rows.append(ParsedRow(
+            txn_date=date_match.group(0),
+            amount=amount,
+            debit_credit=dc,
+            reference='',
+            narration=narration[:200],
+            counterparty='',
+            needs_review=(amount == 0.0 or dc == 'unknown'),
+        ))
+    return rows
 
 def clean_text(text: str) -> str:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -58,14 +116,26 @@ async def parse_document(file: UploadFile = File(...)):
     markdown = '\n\n'.join(f'- {line}' for line in text.splitlines())
     return {'markdown': markdown[:25000]}
 
+@app.post('/parse-bank-pdf')
+async def parse_bank_pdf(file: UploadFile = File(...)):
+    content = await file.read()
+    doc = fitz.open(stream=content, filetype='pdf')
+    full_text = '\n'.join(page.get_text('text') for page in doc)
+    rows = _extract_rows(full_text)
+    return {
+        'rows': [r.model_dump() for r in rows],
+        'total': len(rows),
+        'unparsed_count': sum(1 for r in rows if r.needs_review),
+    }
+
 @app.post('/summarize-exception')
 def summarize_exception(payload: TextPayload):
     markdown = payload.markdown[:12000]
     if not client:
         # Smart rule-based summary fallback
-        code_match = re.search(r'Exception Code:\s*(\S+)', markdown)
-        amount_match = re.search(r'Amount Difference:\s*(\S+)', markdown)
-        date_match = re.search(r'Date Difference:\s*(\S+)', markdown)
+        code_match = re.search(r'Exception Code(?:\*\*)?:\s*(\S+)', markdown, re.IGNORECASE)
+        amount_match = re.search(r'Amount Difference(?:\*\*)?:\s*([-\d\.,]+)', markdown, re.IGNORECASE)
+        date_match = re.search(r'Date Difference(?:\*\*)?:\s*(\d+)', markdown, re.IGNORECASE)
         
         code = code_match.group(1) if code_match else 'UNKNOWN'
         amount = amount_match.group(1) if amount_match else '0.00'
@@ -107,8 +177,9 @@ def summarize_exception(payload: TextPayload):
             
         summary += "\n- **Status**: Awaiting resolution by assigned analyst."
         return {'summary': summary}
+        
     prompt = f"""Summarize this reconciliation exception context in 5 bullet points:
-
+ 
 {markdown}"""
     response = client.chat.completions.create(
         model='llama-3.1-8b-instant',

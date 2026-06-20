@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
+import { useAuth } from './context/AuthContext'
 
 export default function App() {
-  // Read initial values from localStorage to preserve selection on refresh
+  const { user, loading } = useAuth()
   const [entityId, setEntityId] = useState<string>(() => localStorage.getItem('selectedEntityId') || '')
-  const [currentUserRole, setCurrentUserRole] = useState<string>(() => localStorage.getItem('currentUserRole') || 'analyst')
 
   useEffect(() => {
     if (entityId) {
@@ -14,9 +14,17 @@ export default function App() {
     }
   }, [entityId])
 
-  useEffect(() => {
-    localStorage.setItem('currentUserRole', currentUserRole)
-  }, [currentUserRole])
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)' }}>
+        <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>Loading ExceptionIQ workspace...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
 
   return (
     <div className="app-container">
@@ -25,11 +33,11 @@ export default function App() {
         <Navbar 
           entityId={entityId} 
           setEntityId={setEntityId} 
-          currentUserRole={currentUserRole} 
-          setCurrentUserRole={setCurrentUserRole} 
+          currentUserRole={user.role} 
+          setCurrentUserRole={() => {}} // Switched via account login inside Navbar
         />
         <main className="page-container">
-          <Outlet context={{ entityId, setEntityId, currentUserRole, setCurrentUserRole }} />
+          <Outlet context={{ entityId, setEntityId, currentUserRole: user.role }} />
         </main>
       </div>
     </div>

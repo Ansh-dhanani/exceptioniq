@@ -32,12 +32,19 @@ class RoutingRuleSerializer(serializers.ModelSerializer):
         model = RoutingRule
         fields = '__all__'
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role']
+
 class AuditLogSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
     class Meta:
         model = AuditLog
         fields = '__all__'
 
 class ExceptionCommentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
     class Meta:
         model = ExceptionComment
         fields = '__all__'
@@ -45,12 +52,8 @@ class ExceptionCommentSerializer(serializers.ModelSerializer):
 class ExceptionRecordSerializer(serializers.ModelSerializer):
     comments = ExceptionCommentSerializer(many=True, read_only=True)
     audit_logs = AuditLogSerializer(many=True, read_only=True)
+    assigned_to = UserSerializer(read_only=True)
 
     class Meta:
         model = ExceptionRecord
         fields = '__all__'
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'role']

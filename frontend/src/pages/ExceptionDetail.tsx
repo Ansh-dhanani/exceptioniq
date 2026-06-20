@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { client } from '../api/client'
-import { ExceptionRecord, User, AuditLog, ExceptionComment } from '../types'
+import { ExceptionRecord, User, AuditLog } from '../types'
 import StatusChip from '../components/StatusChip'
 import SeverityBadge from '../components/SeverityBadge'
 import SlaCountdown from '../components/SlaCountdown'
@@ -9,6 +9,55 @@ import SlaCountdown from '../components/SlaCountdown'
 interface AppContextType {
   entityId: string
   currentUserRole: string
+}
+
+const renderAuditSentence = (log: AuditLog) => {
+  const meta = log.metadata || {}
+  const action = log.action
+  const username = log.user ? `@${log.user.username}` : 'System'
+
+  switch (action) {
+    case 'detected': {
+      const parts: string[] = []
+      if (meta.amount) parts.push(`amount: ₹${meta.amount}`)
+      if (meta.reference) parts.push(`reference: ${meta.reference}`)
+      if (meta.narration) parts.push(`narration: "${meta.narration}"`)
+      if (meta.counterparty) parts.push(`counterparty: ${meta.counterparty}`)
+      const details = parts.length > 0 ? ` (${parts.join(', ')})` : ''
+      return `System automatically detected the exception${details}.`
+    }
+    case 'routed': {
+      if (meta.rule_name) {
+        return `Exception routed via rule "${meta.rule_name}".`
+      }
+      if (meta.rule_id) {
+        return `Exception routed automatically via rule ID ${meta.rule_id}.`
+      }
+      if (meta.role) {
+        return `Exception routed to ${meta.role} queue.`
+      }
+      return `Exception routed to queue.`
+    }
+    case 'reassigned':
+      return `Reassigned to ${meta.assigned_to ? `@${meta.assigned_to}` : 'unassigned'}.`
+    case 'commented':
+      return `Added a comment.`
+    case 'resolved': {
+      const code = meta.resolution_code || 'unknown_code'
+      const note = meta.note ? ` Note: "${meta.note}"` : ''
+      return `Submitted resolution: ${code.replace(/_/g, ' ')}.${note}`
+    }
+    case 'approved': {
+      const note = meta.note ? ` Note: "${meta.note}"` : ''
+      return `Approved the resolution and closed the exception.${note}`
+    }
+    case 'rejected': {
+      const reason = meta.reason ? ` Reason: "${meta.reason}"` : ''
+      return `Rejected the resolution. Exception re-opened.${reason}`
+    }
+    default:
+      return `Status changed to ${action}.`
+  }
 }
 
 export default function ExceptionDetail() {
@@ -49,7 +98,7 @@ export default function ExceptionDetail() {
     } finally {
       setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     fetchData()
@@ -142,11 +191,9 @@ export default function ExceptionDetail() {
   if (error) return <div style={{ padding: '24px', color: 'red' }}>Error: {error}</div>
   if (!exception) return <div style={{ padding: '24px' }}>Exception not found.</div>
 
-  // Mock data placeholders if linked transactions are missing
   const hasBankSide = exception.source_record_ids.length > 0 && exception.exception_code !== 'BANK-MISS-BANK'
   const hasLedgerSide = exception.source_record_ids.length > 0 && exception.exception_code !== 'BANK-MISS-LEDGER'
 
-  // Format currency helper
   const formatCurrency = (val: string) => {
     const num = parseFloat(val) || 0
     return new Intl.NumberFormat('en-IN', {
@@ -155,12 +202,10 @@ export default function ExceptionDetail() {
     }).format(num)
   }
 
-  // Determine user permission
   const isApproverOrManager = currentUserRole === 'approver' || currentUserRole === 'manager' || currentUserRole === 'admin'
 
   return (
     <div className="page-container" style={{ padding: 0 }}>
-      {/* Back button */}
       <Link to="/exceptions" className="back-link">
         ← Back to Exceptions Queue
       </Link>
@@ -186,14 +231,13 @@ export default function ExceptionDetail() {
       </div>
 
       <div className="detail-grid">
-        {/* Left Side: Context / Comparison */}
+        {/* Left Side */}
         <div>
           <div className="card">
             <h2>Transaction Context</h2>
             <p style={{ fontSize: '13px', marginBottom: '16px' }}>Verify matching records between Bank Statement and General Ledger.</p>
             
             <div className="comparison-box">
-              {/* Bank Statement Side */}
               <div className={`comparison-side ${hasBankSide ? 'highlight' : ''}`}>
                 <div className="comparison-side-title">
                   🏦 Bank Statement Line
@@ -231,7 +275,6 @@ export default function ExceptionDetail() {
                 )}
               </div>
 
-              {/* Ledger Entries Side */}
               <div className={`comparison-side ${hasLedgerSide ? 'highlight' : ''}`}>
                 <div className="comparison-side-title">
                   📖 General Ledger Entry
@@ -335,7 +378,9 @@ export default function ExceptionDetail() {
                     AI Summary & Recommendation
                   </div>
                   <div className="ai-summary-content">
-                    {aiLoaded ? (
+                    {currentUserRole === 'viewer' ? (
+                      <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>🔒 AI Insights are not available for read-only Viewers.</p>
+                    ) : aiLoaded ? (
                       <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.7' }}>{aiSummary}</div>
                     ) : (
                       <div>
@@ -357,14 +402,11 @@ export default function ExceptionDetail() {
                   {(exception.audit_logs || []).map((log, idx) => (
                     <li key={log.id || idx} className={`audit-item action-${log.action}`}>
                       <div className="audit-meta">
-                        {new Date(log.created_at).toLocaleString()} {log.user ? `by @${log.user.username}` : ''}
+                        {new Date(log.created_at).toLocaleString()} {log.user ? `by @${log.user.username}` : 'by System'}
                       </div>
-                      <div className="audit-desc">
-                        Status transitioned to <strong>{log.action}</strong>
+                      <div className="audit-desc" style={{ marginTop: '4px', fontSize: '13px', color: 'var(--color-text)' }}>
+                        {renderAuditSentence(log)}
                       </div>
-                      {Object.keys(log.metadata || {}).length > 0 && (
-                        <pre className="audit-details">{JSON.stringify(log.metadata, null, 2)}</pre>
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -390,49 +432,57 @@ export default function ExceptionDetail() {
                   )}
                 </div>
                 
-                <form onSubmit={handleAddComment} className="comment-input-area">
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Write a message for the audit trail..."
-                    className="comment-textarea"
-                  />
-                  <button type="submit" className="btn btn-primary" style={{ height: '38px', padding: '0 16px' }}>
-                    Post Comment
-                  </button>
-                </form>
+                {currentUserRole !== 'viewer' ? (
+                  <form onSubmit={handleAddComment} className="comment-input-area">
+                    <input
+                      type="text"
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Write a message for the audit trail..."
+                      className="comment-textarea"
+                    />
+                    <button type="submit" className="btn btn-primary" style={{ height: '38px', padding: '0 16px' }}>
+                      Post Comment
+                    </button>
+                  </form>
+                ) : (
+                  <div style={{ padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', fontSize: '12px', color: 'var(--color-text-secondary)', textAlign: 'center' }}>
+                    🔒 Comments are read-only for Viewer profiles.
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Side: Resolution / Reassign Panels */}
+        {/* Right Side */}
         <div>
-          {/* Reassign Panel */}
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <h3>Assignee Ownership</h3>
-            <div className="form-group" style={{ marginTop: '8px', marginBottom: 0 }}>
-              <select 
-                value={exception.assigned_to?.id || ''} 
-                onChange={(e) => handleReassign(e.target.value)}
-                className="form-input"
-              >
-                <option value="">-- Choose Analyst --</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.username} ({u.role.toUpperCase()})</option>
-                ))}
-              </select>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px' }}>Assigning routes the ticket and establishes SLA accountability.</p>
+          {/* Reassign Panel (Only for admin or manager) */}
+          {(currentUserRole === 'admin' || currentUserRole === 'manager') && (
+            <div className="card" style={{ marginBottom: '20px' }}>
+              <h3>Assignee Ownership</h3>
+              <div className="form-group" style={{ marginTop: '8px', marginBottom: 0 }}>
+                <select 
+                  value={exception.assigned_to?.id || ''} 
+                  onChange={(e) => handleReassign(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="">-- Choose Analyst --</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.username} ({u.role.toUpperCase()})</option>
+                  ))}
+                </select>
+                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px' }}>Assigning routes the ticket and establishes SLA accountability.</p>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Maker-Checker Approval View (If exception is in resolved or pending_approval state) */}
+          {/* Maker-Checker Approval View */}
           {(exception.status === 'resolved' || exception.status === 'pending_approval') ? (
             <div className="card" style={{ borderColor: '#8b5cf6', background: '#fbfaff' }}>
               <h2 style={{ color: '#6d28d9', fontSize: '15px' }}>✍️ Maker-Checker Approvals</h2>
               <p style={{ fontSize: '12px', marginBottom: '16px' }}>
-                This exception has been marked <strong>Resolved</strong> by the analyst and requires verify check by an Approver or Manager.
+                This exception has been marked <strong>Resolved</strong> by the analyst and requires verification by an Approver or Manager.
               </p>
               
               {isApproverOrManager ? (
@@ -459,47 +509,53 @@ export default function ExceptionDetail() {
                 </div>
               ) : (
                 <div style={{ padding: '12px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 'var(--radius)', fontSize: '12px', color: '#5b21b6', fontWeight: 500 }}>
-                  🔒 Locked: Current switcher role ({currentUserRole}) does not have approval clearance. Switch to Approver role in navbar to approve/reject.
+                  🔒 Locked: Current user role ({currentUserRole}) does not have approval clearance. Requires Approver, Manager, or Admin.
                 </div>
               )}
             </div>
           ) : exception.status !== 'closed' ? (
-            /* Resolution Form (Analyst Input) */
+            /* Resolution Form */
             <div className="card">
               <h2>Resolve Exception</h2>
-              <form onSubmit={handleResolve} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Resolution Code</label>
-                  <select 
-                    value={resolutionCode} 
-                    onChange={(e) => setResolutionCode(e.target.value)}
-                    className="form-input"
-                  >
-                    <option value="round_off_charge">Rounding adjustment / Bank fees</option>
-                    <option value="manual_ledger_post">Manual post entry added to books</option>
-                    <option value="uncleared_cheque">Cheque clearance delay accepted</option>
-                    <option value="reference_updated">Typographical reference update</option>
-                    <option value="clearing_drift_accepted">Timing difference cleared since</option>
-                    <option value="commercial_writeoff">Commercial dispute write-off</option>
-                  </select>
+              {(currentUserRole === 'admin' || currentUserRole === 'manager' || currentUserRole === 'analyst') ? (
+                <form onSubmit={handleResolve} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Resolution Code</label>
+                    <select 
+                      value={resolutionCode} 
+                      onChange={(e) => setResolutionCode(e.target.value)}
+                      className="form-input"
+                    >
+                      <option value="round_off_charge">Rounding adjustment / Bank fees</option>
+                      <option value="manual_ledger_post">Manual post entry added to books</option>
+                      <option value="uncleared_cheque">Cheque clearance delay accepted</option>
+                      <option value="reference_updated">Typographical reference update</option>
+                      <option value="clearing_drift_accepted">Timing difference cleared since</option>
+                      <option value="commercial_writeoff">Commercial dispute write-off</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Resolution Notes</label>
+                    <textarea 
+                      value={resolutionNote} 
+                      onChange={(e) => setResolutionNote(e.target.value)}
+                      placeholder="Provide evidence reference or comments..."
+                      className="form-input"
+                      style={{ height: '100px', resize: 'none', fontFamily: 'inherit' }}
+                      required
+                    />
+                  </div>
+                  
+                  <button type="submit" className="btn btn-primary">
+                    Submit Resolution
+                  </button>
+                </form>
+              ) : (
+                <div style={{ padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '8px' }}>
+                  🔒 Read-only: Only Analysts can submit resolutions.
                 </div>
-                
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Resolution Notes</label>
-                  <textarea 
-                    value={resolutionNote} 
-                    onChange={(e) => setResolutionNote(e.target.value)}
-                    placeholder="Provide evidence reference or comments..."
-                    className="form-input"
-                    style={{ height: '100px', resize: 'none', fontFamily: 'inherit' }}
-                    required
-                  />
-                </div>
-                
-                <button type="submit" className="btn btn-primary">
-                  Submit Resolution
-                </button>
-              </form>
+              )}
             </div>
           ) : (
             /* Closed State Panel */
