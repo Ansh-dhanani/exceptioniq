@@ -205,3 +205,65 @@ def classify_exception(payload: ClassifyPayload):
     if payload.ledger_party.lower().strip() != payload.bank_party.lower().strip():
         return {'code': 'BANK-NAME'}
     return {'code': 'BANK-REF'}
+
+@app.post('/parse-gstr2b')
+async def parse_gstr2b(file: UploadFile = File(...)):
+    """
+    Accepts GSTR-2B JSON file (downloaded from GST portal).
+    Returns a flat list of invoice rows ready for DB insert.
+    """
+    try:
+        content = await file.read()
+        data = json.loads(content)
+        b2b_suppliers = data.get('data', {}).get('docdata', {}).get('b2b', [])
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid GSTR-2B JSON: {str(e)}")
+
+    rows = []
+    for supplier in b2b_suppliers:
+        ctin = supplier.get('ctin', '')
+        for inv in supplier.get('inv', []):
+            itms = inv.get('itms', [{}])
+            itm  = itms[0].get('itm_det', {}) if itms else {}
+            rows.append({
+                'supplier_gstin': ctin,
+                'invoice_number': inv.get('inum', ''),
+                'invoice_date':   inv.get('idt', ''),
+                'taxable_value':  itm.get('txval', 0),
+                'igst':           itm.get('igst', 0),
+                'cgst':           itm.get('cgst', 0),
+                'sgst':           itm.get('sgst', 0),
+                'total_tax':      round(itm.get('igst', 0) + itm.get('cgst', 0) + itm.get('sgst', 0), 2),
+            })
+    return {'rows': rows, 'total': len(rows)}
+
+@app.post('/parse-26as')
+async def parse_26as(file: UploadFile = File(...)):
+    """
+    Accepts Form 26AS as plain text (copy-pasted from IT portal) or CSV.
+    Returns structured rows: deductor PAN, section, gross amount, TDS amount.
+    """
+    content = (await file.read()).decode('utf-8', errors='replace')
+    rows = []
+    PAN_RE      = re.compile(r'\b[A-Z]{5}[0-9]{4}[A-Z]\b')
+    AMOUNT_RE   = re.compile(r'[\d,]+\.\d{2}')
+    SECTION_RE  = re.compile(r'\b(19[0-9][A-Z]?|195)\b')
+
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or len(line) < 20:
+            continue
+        pan_match     = PAN_RE.search(line)
+        amounts       = AMOUNT_RE.findall(line)
+        section_match = SECTION_RE.search(line)
+        if not pan_match or len(amounts) < 2:
+            continue
+        rows.append({
+            'deductor_pan':  pan_match.group(0),
+            'gross_amount':  float(amounts[0].replace(',', '')),
+            'tds_amount':    float(amounts[1].replace(',', '')),
+            'section_code':  section_match.group(0) if section_match else '',
+            'needs_review':  not section_match,
+        })
+    return {'rows': rows, 'total': len(rows)}
+

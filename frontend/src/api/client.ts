@@ -37,5 +37,22 @@ export const client = {
     }
     if (!res.ok) throw new Error(`DELETE ${path} failed`);
     return res;
+  },
+
+  async patch(path: string, body: any) {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'include',
+    });
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('Unauthorized');
+    }
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.detail || `PATCH ${path} failed`);
+    }
+    return res.json();
   }
 };

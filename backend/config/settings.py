@@ -24,6 +24,11 @@ INSTALLED_APPS = [
     'apps.reconciliation',
     'apps.exceptions_app',
     'apps.routing',
+    'apps.gst',
+    'apps.tds',
+    'apps.vendors',
+    'apps.close',
+    'apps.integrations',
     'apps.api',
 ]
 

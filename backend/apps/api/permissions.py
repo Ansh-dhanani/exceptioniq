@@ -15,6 +15,32 @@ ROLE_ACTION_MAP = {
     'update':         {'admin'},
     'partial_update': {'admin'},
     'destroy':        {'admin'},
+    
+    # GST
+    'upload_gstr2b':          {'admin', 'manager', 'analyst'},
+    'upload_purchase_register':{'admin', 'manager', 'analyst'},
+    'gst_run':                {'admin', 'manager', 'analyst'},
+    'gst_summary':            {'admin', 'manager', 'approver', 'analyst', 'viewer'},
+
+    # TDS
+    'upload_26as':            {'admin', 'manager', 'analyst'},
+    'upload_tds_ledger':      {'admin', 'manager', 'analyst'},
+    'tds_run':                {'admin', 'manager', 'analyst'},
+
+    # Vendors
+    'block_payment':          {'admin', 'manager'},
+    'unblock_payment':        {'admin', 'manager'},
+    'recompute_risk':         {'admin'},
+
+    # Close
+    'generate_close':         {'admin', 'manager'},
+    'close_period':           {'admin', 'manager'},
+    'complete_item':          {'admin', 'manager', 'approver', 'analyst'},
+
+    # Integrations
+    'tally_sync':             {'admin', 'manager'},
+    'zoho_sync':              {'admin', 'manager'},
+    'zoho_connect':           {'admin'},
 }
 
 class RolePermission(BasePermission):

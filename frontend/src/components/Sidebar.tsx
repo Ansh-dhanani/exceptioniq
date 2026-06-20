@@ -7,6 +7,7 @@ export default function Sidebar() {
 
   const showIngestion = ['admin', 'manager', 'analyst'].includes(role)
   const showRouting = ['admin'].includes(role)
+  const showIntegrations = ['admin', 'manager'].includes(role)
 
   return (
     <aside className="sidebar">
@@ -27,9 +28,41 @@ export default function Sidebar() {
           </li>
           
           {showIngestion && (
+            <>
+              <li>
+                <NavLink to="/ingestion" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                  📥 Data Ingestion
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/gst" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                  📄 GST Recon
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/tds" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                  💼 TDS Recon
+                </NavLink>
+              </li>
+            </>
+          )}
+
+          <li>
+            <NavLink to="/vendors" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              👥 Vendors
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink to="/close" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              🏁 Month-End Close
+            </NavLink>
+          </li>
+
+          {showIntegrations && (
             <li>
-              <NavLink to="/ingestion" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                📥 Data Ingestion
+              <NavLink to="/integrations" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                🔗 Integrations
               </NavLink>
             </li>
           )}
