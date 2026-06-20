@@ -46,7 +46,7 @@ export default function ManagerDashboard({ entityId, user }: Props) {
     try {
       const excData = await client.get(`/exceptions/?entity=${entityId}`)
       setExceptions(Array.isArray(excData) ? excData : excData.results || [])
-      
+
       const userData = await client.get('/users/')
       setUsers(Array.isArray(userData) ? userData : userData.results || [])
     } catch (err) {
@@ -158,11 +158,24 @@ export default function ManagerDashboard({ entityId, user }: Props) {
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Operations Manager Dashboard 📈</h1>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Monitor queue health, SLA breaches, and balance team resource allocation.</p>
         </div>
-        <button 
-          onClick={handleExportPDF} 
+        <button
+          onClick={handleExportPDF}
           disabled={exporting}
           className="btn btn-primary"
-          style={{ padding: '10px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
+          style={{
+            padding: '10px 18px',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#ffffff',
+            backgroundColor: '#3B4EFF',
+            border: 'none',
+            borderRadius: '6px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(59, 78, 255, 0.2)'
+          }}
         >
           {exporting ? 'Generating Report...' : '📄 Export Executive Report'}
         </button>
