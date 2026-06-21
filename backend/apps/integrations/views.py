@@ -192,7 +192,7 @@ class IntegrationsViewSet(viewsets.ViewSet):
             if not entity_id:
                 if request.query_params.get('format') == 'json':
                     return Response({'error': 'entity_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-                return redirect(f"{frontend_url}/integrations?zoho=error&reason=entity_not_found")
+                return redirect(f"{frontend_url}/app/integrations?zoho=error&reason=entity_not_found")
 
             client_id = os.environ.get('ZOHO_CLIENT_ID', '').strip()
             redirect_uri = os.environ.get('ZOHO_REDIRECT_URI', '').strip()
@@ -245,12 +245,12 @@ class IntegrationsViewSet(viewsets.ViewSet):
         frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
         
         if error or not code:
-            return redirect(f"{frontend_url}/integrations?zoho=denied")
+            return redirect(f"{frontend_url}/app/integrations?zoho=denied")
             
         try:
             entity = Entity.objects.get(id=state)
         except Entity.DoesNotExist:
-            return redirect(f"{frontend_url}/integrations?zoho=error&reason=entity_not_found")
+            return redirect(f"{frontend_url}/app/integrations?zoho=error&reason=entity_not_found")
             
         try:
             client_id = os.environ.get('ZOHO_CLIENT_ID', '').strip()
@@ -266,12 +266,12 @@ class IntegrationsViewSet(viewsets.ViewSet):
             })
             
             if res.status_code != 200:
-                return redirect(f"{frontend_url}/integrations?zoho=error&reason=token_exchange_failed")
+                return redirect(f"{frontend_url}/app/integrations?zoho=error&reason=token_exchange_failed")
                 
             data = res.json()
             refresh_token = data.get("refresh_token")
             if not refresh_token:
-                return redirect(f"{frontend_url}/integrations?zoho=error&reason=no_refresh_token")
+                return redirect(f"{frontend_url}/app/integrations?zoho=error&reason=no_refresh_token")
                 
             expires_in = data.get("expires_in", 3600)
             token_expiry = timezone.now() + timezone.timedelta(seconds=int(expires_in))
@@ -296,10 +296,10 @@ class IntegrationsViewSet(viewsets.ViewSet):
             except Exception as org_err:
                 print("Failed to auto-fetch organization ID:", org_err)
                 
-            return redirect(f"{frontend_url}/integrations?zoho=connected")
+            return redirect(f"{frontend_url}/app/integrations?zoho=connected")
             
         except Exception as e:
-            return redirect(f"{frontend_url}/integrations?zoho=error&reason=token_exchange_failed")
+            return redirect(f"{frontend_url}/app/integrations?zoho=error&reason=token_exchange_failed")
 
     @action(detail=False, methods=['post'], url_path='zoho/disconnect')
     def zoho_disconnect(self, request):
