@@ -10,6 +10,7 @@ services:
   - type: web
     name: exceptioniq-backend
     env: python
+    pythonVersion: 3.12.0
     region: singapore
     plan: free
     buildCommand: cd backend && pip install --prefer-binary -r requirements.txt
@@ -51,6 +52,7 @@ services:
   - type: web
     name: exceptioniq-ai
     env: python
+    pythonVersion: 3.12.0
     region: singapore
     plan: free
     buildCommand: cd ai_service && pip install --prefer-binary -r requirements.txt
