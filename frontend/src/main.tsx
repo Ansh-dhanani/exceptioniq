@@ -17,6 +17,7 @@ import TDSRecon from './pages/TDSRecon'
 import VendorRisk from './pages/VendorRisk'
 import MonthEndClose from './pages/MonthEndClose'
 import Integrations from './pages/Integrations'
+import NotFound from './pages/NotFound'
 import { AuthProvider } from './context/AuthContext'
 import './index.css'
 
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
       { path: '*', element: <Navigate to="/app/dashboard" replace /> }
     ],
   },
+  { path: '*', element: <NotFound /> },
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
