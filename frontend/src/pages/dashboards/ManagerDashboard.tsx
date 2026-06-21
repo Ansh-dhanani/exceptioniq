@@ -297,6 +297,118 @@ export default function ManagerDashboard({ entityId, user }: Props) {
         </div>
       </div>
 
+      {/* Compliance & Operations Row */}
+      <div className="grid-2">
+        {/* Month-End Close Progress */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.05)', filter: 'blur(20px)' }} />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month-End Close Progress</span>
+            <span style={{
+              fontSize: '11px',
+              background: latestClosePeriod?.status === 'closed' ? '#d1fae5' : '#fef3c7',
+              color: latestClosePeriod?.status === 'closed' ? '#065f46' : '#d97706',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontWeight: 600,
+              textTransform: 'uppercase'
+            }}>
+              {latestClosePeriod ? latestClosePeriod.status.replace('_', ' ') : 'Not Started'}
+            </span>
+          </div>
+
+          {latestClosePeriod ? (
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Period: <b>{latestClosePeriod.period}</b></span>
+                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)' }}>
+                  {latestClosePeriod.items && latestClosePeriod.items.length > 0
+                    ? Math.round((latestClosePeriod.items.filter(it => it.is_complete).length / latestClosePeriod.items.length) * 100)
+                    : 0}%
+                </span>
+              </div>
+              
+              <div style={{ width: '100%', height: '8px', background: '#cbd5e1', borderRadius: '4px', overflow: 'hidden', margin: '8px 0 12px 0' }}>
+                <div style={{
+                  width: `${latestClosePeriod.items && latestClosePeriod.items.length > 0
+                    ? (latestClosePeriod.items.filter(it => it.is_complete).length / latestClosePeriod.items.length) * 100
+                    : 0}%`,
+                  height: '100%',
+                  background: '#4F46E5',
+                  borderRadius: '4px',
+                  transition: 'width 0.4s ease'
+                }} />
+              </div>
+
+              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'flex', gap: '12px' }}>
+                <span>Completed: <b>{latestClosePeriod.items?.filter(it => it.is_complete).length}</b> of <b>{latestClosePeriod.items?.length}</b></span>
+                <span>•</span>
+                <span>Critical Remaining: <b style={{ color: latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length ? '#dc2626' : 'inherit' }}>
+                  {latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length}
+                </b></span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop: '12px', color: 'var(--color-text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
+              No active month-end close checklist generated.
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>
+              Checklist Tasks: {latestClosePeriod?.items?.length || 0} total items
+            </span>
+            <Link to="/close" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+              Orchestrate Close →
+            </Link>
+          </div>
+        </div>
+
+        {/* Vendor Risk Summary */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.05)', filter: 'blur(20px)' }} />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Counterparty Risk Assessment</span>
+            <span style={{ fontSize: '11px', background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>90-Day Rolling</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', marginTop: '4px' }}>
+            <div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Total Vendor Amount at Risk</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-text)', marginTop: '4px', letterSpacing: '-0.5px' }}>
+                ₹{totalVendorAmountAtRisk.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', padding: '2px 6px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '4px' }}>
+                <span style={{ color: '#b91c1c', fontWeight: 600 }}>🔴 Red Risk:</span>
+                <span style={{ fontWeight: 700, color: '#b91c1c' }}>{redVendors}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', padding: '2px 6px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '4px' }}>
+                <span style={{ color: '#d97706', fontWeight: 600 }}>🟡 Amber Risk:</span>
+                <span style={{ fontWeight: 700, color: '#d97706' }}>{amberVendors}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', padding: '2px 6px', background: '#f0fdf4', border: '1px solid #d1fae5', borderRadius: '4px' }}>
+                <span style={{ color: '#15803d', fontWeight: 600 }}>🟢 Green Risk:</span>
+                <span style={{ fontWeight: 700, color: '#15803d' }}>{greenVendors}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>
+              Monitored Vendors: {vendors.length} total
+            </span>
+            <Link to="/vendors" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+              Manage Vendor Risk →
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="grid-2">
         <div className="card">
           <h2>Active Exception Aging (Days)</h2>
