@@ -94,7 +94,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 if os.getenv('FRONTEND_ORIGIN'):
-    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_ORIGIN'))
+    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_ORIGIN').rstrip('/'))
 
 # Cross-origin cookie support for Railway (frontend + backend on different domains)
 SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
