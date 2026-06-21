@@ -1,7 +1,3 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
-# After pushing to GitHub, connect this repo in the Render dashboard.
-# Render will auto-detect this file and provision all resources.
-
 databases:
   - name: exceptioniq-db
     databaseName: exceptioniq
@@ -13,11 +9,11 @@ services:
   # --- Django Backend API ---
   - type: web
     name: exceptioniq-backend
-    runtime: python
+    env: python
     region: singapore
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: ./start.sh
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && python manage.py migrate --noinput && if [ "$RUN_SEED" = "true" ]; then python manage.py seed_db --noinput; fi && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
     healthCheckPath: /api/v1/health/
     envVars:
       - key: DATABASE_URL
@@ -47,18 +43,18 @@ services:
       - key: ZOHO_CLIENT_SECRET
         sync: false
       - key: AI_SERVICE_URL
-        value: ""     # Set to AI service URL after deploy
+        value: ""
       - key: FRONTEND_ORIGIN
-        value: ""     # Set to frontend URL after deploy
+        value: ""
 
   # --- FastAPI AI Service ---
   - type: web
     name: exceptioniq-ai
-    runtime: python
+    env: python
     region: singapore
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: ./start.sh
+    buildCommand: cd ai_service && pip install -r requirements.txt
+    startCommand: cd ai_service && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GROQ_API_KEY
         sync: false
@@ -67,11 +63,11 @@ services:
   - type: static
     name: exceptioniq-frontend
     region: singapore
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: ""     # Set to https://your-backend.onrender.com/api/v1
+        value: ""
     headers:
       - path: /*
         name: X-Frame-Options
