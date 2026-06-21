@@ -24,15 +24,16 @@ function Btn({ children, variant = 'primary', onClick }: { children: React.React
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        padding: '10px 24px',
+        padding: '12px 28px',
         background: isPrimary ? '#111827' : '#fff',
         color: isPrimary ? '#fff' : '#374151',
         border: isPrimary ? 'none' : '1px solid #d1d5db',
         borderRadius: 8,
-        fontSize: 14,
-        fontWeight: 600,
+        fontSize: 15,
+        fontWeight: 700,
         cursor: 'pointer',
         transition: 'all 0.15s',
+        letterSpacing: '-0.2px',
       }}
     >
       {children}
@@ -54,7 +55,7 @@ export default function Landing() {
           maxWidth: 1120, margin: '0 auto', padding: '0 32px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60,
         }}>
-          <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.3px' }}>ExceptionIQ</span>
+          <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.5px' }}>ExceptionIQ</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             {['Platform', 'Exception codes', 'Workflow', 'Integrations'].map((link) => (
               <a key={link} href={`#${link.toLowerCase().replace(' ', '-')}`}
@@ -72,10 +73,10 @@ export default function Landing() {
       {/* ─ Hero ─ */}
       <section style={{ padding: '96px 32px', maxWidth: 1120, margin: '0 auto' }}>
         <div style={{ maxWidth: 700 }}>
-          <h1 style={{ fontSize: 40, fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.8px', marginBottom: 16 }}>
+          <h1 style={{ fontSize: 44, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-1.2px', marginBottom: 20 }}>
             Reconcile bank, GST, and TDS exceptions with maker-checker enforcement
           </h1>
-          <p style={{ fontSize: 16, lineHeight: 1.7, color: '#6B7280', marginBottom: 32, maxWidth: 580 }}>
+          <p style={{ fontSize: 17, lineHeight: 1.7, color: '#6B7280', marginBottom: 36, maxWidth: 580 }}>
             ExceptionIQ ingests bank statements, GSTR-2B returns, and Form 26AS data, runs three reconciliation engines, detects 12 exception types, routes them by amount tier and role, and requires two people to close any exception.
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -90,7 +91,7 @@ export default function Landing() {
       {/* ─ Platform ─ */}
       <section id="platform" style={{ background: '#F9FAFB', padding: '80px 32px', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 40 }}>Three reconciliation engines</h2>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.5px' }}>Three reconciliation engines</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {[
               {
@@ -109,7 +110,7 @@ export default function Landing() {
               <div key={e.title} style={{
                 background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 28,
               }}>
-                <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{e.title}</h3>
+                <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.3px' }}>{e.title}</h3>
                 <p style={{ fontSize: 14, lineHeight: 1.7, color: '#6B7280', margin: 0 }}>{e.sub}</p>
               </div>
             ))}
@@ -119,7 +120,7 @@ export default function Landing() {
 
       {/* ─ Exception codes ─ */}
       <section id="exception-codes" style={{ padding: '80px 32px', maxWidth: 1120, margin: '0 auto' }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 8 }}>12 exception codes the engine detects</h2>
+        <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.5px' }}>12 exception codes the engine detects</h2>
         <p style={{ fontSize: 15, color: '#6B7280', marginBottom: 36, maxWidth: 560 }}>
           Each exception carries a severity level, confidence score, SLA deadline, and is automatically routed based on configured rules.
         </p>
@@ -149,7 +150,7 @@ export default function Landing() {
       {/* ─ Workflow ─ */}
       <section id="workflow" style={{ background: '#F9FAFB', padding: '80px 32px', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 40 }}>How the pipeline works</h2>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.5px' }}>How the pipeline works</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             {[
               { num: '01', title: 'Ingest data', body: 'Upload bank PDFs, CSV files, or JSON data. Import GSTR-2B returns and Form 26AS records. Or sync directly from TallyPrime (XML on port 9000) or Zoho Books via OAuth 2.0.' },
@@ -159,9 +160,9 @@ export default function Landing() {
               { num: '05', title: 'Close the period', body: 'A month-end checklist auto-generates 10 items. Close is blocked until all critical items (bank recon, GST review) are complete.' },
             ].map((s) => (
               <div key={s.num} style={{ display: 'flex', gap: 20 }}>
-                <div style={{ width: 32, fontSize: 13, fontWeight: 700, color: '#9CA3AF', flexShrink: 0 }}>{s.num}</div>
+                <div style={{ width: 40, fontSize: 14, fontWeight: 800, color: '#9CA3AF', flexShrink: 0, letterSpacing: '-0.5px' }}>{s.num}</div>
                 <div>
-                  <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{s.title}</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, letterSpacing: '-0.2px' }}>{s.title}</h3>
                   <p style={{ fontSize: 14, lineHeight: 1.7, color: '#6B7280', margin: 0, maxWidth: 640 }}>{s.body}</p>
                 </div>
               </div>
@@ -172,7 +173,7 @@ export default function Landing() {
 
       {/* ─ State machine ─ */}
       <section style={{ padding: '80px 32px', maxWidth: 1120, margin: '0 auto' }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 8 }}>Maker-checker state machine</h2>
+        <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.5px' }}>Maker-checker state machine</h2>
         <p style={{ fontSize: 15, color: '#6B7280', marginBottom: 36 }}>Seven states. Two roles required to close. Full audit trail.</p>
         <div style={{
           display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 32,
@@ -197,7 +198,7 @@ export default function Landing() {
             { role: 'Manager / Admin', action: 'Override, reassign, close periods' },
           ].map((r) => (
             <div key={r.role} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{r.role}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, letterSpacing: '-0.2px' }}>{r.role}</div>
               <div style={{ fontSize: 13, color: '#6B7280' }}>{r.action}</div>
             </div>
           ))}
@@ -207,7 +208,7 @@ export default function Landing() {
       {/* ─ Integrations ─ */}
       <section id="integrations" style={{ background: '#F9FAFB', padding: '80px 32px', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 40 }}>Integrations</h2>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.5px' }}>Integrations</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {[
               { title: 'TallyPrime', body: 'Connects via XML-over-HTTP on port 9000. Sends TDL requests with company name, parses voucher responses, creates ledger entries.' },
@@ -215,7 +216,7 @@ export default function Landing() {
               { title: 'File upload', body: 'CSV upload, JSON paste, or drag-and-drop PDF. PDFs are parsed by PyMuPDF with regex, shown as editable tables, then confirmed.' },
             ].map((i) => (
               <div key={i.title} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 24 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{i.title}</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.3px' }}>{i.title}</h3>
                 <p style={{ fontSize: 14, lineHeight: 1.7, color: '#6B7280', margin: 0 }}>{i.body}</p>
               </div>
             ))}
@@ -225,7 +226,7 @@ export default function Landing() {
 
       {/* ─ CTA ─ */}
       <section style={{ padding: '64px 32px', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Pre-seeded and ready to explore</h2>
+        <h2 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.5px' }}>Pre-seeded and ready to explore</h2>
         <p style={{ fontSize: 15, color: '#6B7280', marginBottom: 28, maxWidth: 440, margin: '0 auto 28px' }}>
           30 synthetic exceptions, 4 demo users, 7 routing rules. Sign in with any role to explore the workspace.
         </p>
