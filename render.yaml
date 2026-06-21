@@ -47,6 +47,8 @@ services:
         value: ""
       - key: FRONTEND_ORIGIN
         value: "https://exceptioniq-frontend.onrender.com"
+      - key: FRONTEND_URL
+        value: "https://exceptioniq-frontend.onrender.com"
 
   # --- React Frontend (Static Site) ---
   - type: static-site
