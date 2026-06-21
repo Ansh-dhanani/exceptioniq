@@ -157,6 +157,53 @@ export default function Login() {
 
         <div style={{
           marginTop: 20,
+          borderTop: '1px solid #e5e7eb',
+          paddingTop: 16,
+        }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', margin: '0 0 8px 0' }}>
+            Quick Login (demo accounts)
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {[
+              { role: 'manager', username: 'manager_u' },
+              { role: 'analyst', username: 'analyst_u' },
+              { role: 'approver', username: 'approver_u' },
+              { role: 'viewer', username: 'viewer_u' },
+              { role: 'admin', username: 'admin_u' },
+            ].map(({ role, username: uname }) => (
+              <button
+                key={uname}
+                onClick={async () => {
+                  setLoading(true)
+                  setError('')
+                  try {
+                    const userData = await login(uname, 'testpass123')
+                    redirectAfterLogin(userData)
+                  } catch (err: any) {
+                    setError(err.message || 'Login failed.')
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 11,
+                  borderRadius: 4,
+                  border: '1px solid #d1d5db',
+                  background: '#f9fafb',
+                  color: '#374151',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                {role}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: 16,
           padding: '12px 14px',
           background: '#f8fafc',
           borderRadius: 6,
