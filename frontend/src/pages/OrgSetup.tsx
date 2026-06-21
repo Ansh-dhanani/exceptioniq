@@ -4,7 +4,7 @@ import { client } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
 export default function OrgSetup() {
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, logout } = useAuth()
   const navigate = useNavigate()
   const isManager = user?.role === 'manager'
 
@@ -183,13 +183,13 @@ export default function OrgSetup() {
 
         <div style={{ marginTop: 20, textAlign: 'center' }}>
           <button
-            onClick={() => navigate('/login')}
+            onClick={async () => { await logout(); navigate('/login') }}
             style={{
               background: 'none', border: 'none', color: '#6b7280', fontSize: 12,
               cursor: 'pointer', textDecoration: 'underline',
             }}
           >
-            Switch account
+            Sign out and switch account
           </button>
         </div>
       </div>
