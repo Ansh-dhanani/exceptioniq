@@ -73,10 +73,10 @@ export default function Landing() {
       {/* ─ Hero ─ */}
       <section style={{ padding: '96px 32px', maxWidth: 1120, margin: '0 auto' }}>
         <div style={{ maxWidth: 700 }}>
-          <h1 style={{ fontSize: 44, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-1.2px', marginBottom: 20 }}>
-            Reconcile bank, GST, and TDS exceptions with maker-checker enforcement
+          <h1 style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.08, letterSpacing: '-1.5px', marginBottom: 20 }}>
+            Catch every exception before it breaks your books
           </h1>
-          <p style={{ fontSize: 17, lineHeight: 1.7, color: '#6B7280', marginBottom: 36, maxWidth: 580 }}>
+          <p style={{ fontSize: 17, lineHeight: 1.7, color: '#6B7280', marginBottom: 36, maxWidth: 600 }}>
             ExceptionIQ ingests bank statements, GSTR-2B returns, and Form 26AS data, runs three reconciliation engines, detects 12 exception types, routes them by amount tier and role, and requires two people to close any exception.
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -91,7 +91,7 @@ export default function Landing() {
       {/* ─ Platform ─ */}
       <section id="platform" style={{ background: '#F9FAFB', padding: '80px 32px', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.5px' }}>Three reconciliation engines</h2>
+          <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.6px' }}>Three reconciliation engines</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {[
               {
@@ -111,7 +111,7 @@ export default function Landing() {
                 background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 28,
               }}>
                 <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.3px' }}>{e.title}</h3>
-                <p style={{ fontSize: 14, lineHeight: 1.7, color: '#6B7280', margin: 0 }}>{e.sub}</p>
+                <p style={{ fontSize: 15, lineHeight: 1.7, color: '#6B7280', margin: 0 }}>{e.sub}</p>
               </div>
             ))}
           </div>
@@ -120,8 +120,8 @@ export default function Landing() {
 
       {/* ─ Exception codes ─ */}
       <section id="exception-codes" style={{ padding: '80px 32px', maxWidth: 1120, margin: '0 auto' }}>
-        <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.5px' }}>12 exception codes the engine detects</h2>
-        <p style={{ fontSize: 15, color: '#6B7280', marginBottom: 36, maxWidth: 560 }}>
+        <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.6px' }}>12 exception codes the engine detects</h2>
+        <p style={{ fontSize: 16, color: '#6B7280', marginBottom: 36, maxWidth: 560 }}>
           Each exception carries a severity level, confidence score, SLA deadline, and is automatically routed based on configured rules.
         </p>
         <div style={{
@@ -141,7 +141,7 @@ export default function Landing() {
                 padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap',
                 fontFamily: "'SF Mono', 'Fira Code', monospace",
               }}>{t.code}</code>
-              <span style={{ fontSize: 13.5, color: '#4B5563', lineHeight: 1.5 }}>{t.desc}</span>
+              <span style={{ fontSize: 14.5, color: '#4B5563', lineHeight: 1.5 }}>{t.desc}</span>
             </div>
           ))}
         </div>
@@ -150,7 +150,7 @@ export default function Landing() {
       {/* ─ Workflow ─ */}
       <section id="workflow" style={{ background: '#F9FAFB', padding: '80px 32px', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.5px' }}>How the pipeline works</h2>
+          <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.6px' }}>How the pipeline works</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             {[
               { num: '01', title: 'Ingest data', body: 'Upload bank PDFs, CSV files, or JSON data. Import GSTR-2B returns and Form 26AS records. Or sync directly from TallyPrime (XML on port 9000) or Zoho Books via OAuth 2.0.' },
@@ -163,7 +163,7 @@ export default function Landing() {
                 <div style={{ width: 40, fontSize: 14, fontWeight: 800, color: '#9CA3AF', flexShrink: 0, letterSpacing: '-0.5px' }}>{s.num}</div>
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, letterSpacing: '-0.2px' }}>{s.title}</h3>
-                  <p style={{ fontSize: 14, lineHeight: 1.7, color: '#6B7280', margin: 0, maxWidth: 640 }}>{s.body}</p>
+                  <p style={{ fontSize: 15, lineHeight: 1.7, color: '#6B7280', margin: 0, maxWidth: 640 }}>{s.body}</p>
                 </div>
               </div>
             ))}
@@ -173,8 +173,8 @@ export default function Landing() {
 
       {/* ─ State machine ─ */}
       <section style={{ padding: '80px 32px', maxWidth: 1120, margin: '0 auto' }}>
-        <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.5px' }}>Maker-checker state machine</h2>
-        <p style={{ fontSize: 15, color: '#6B7280', marginBottom: 36 }}>Seven states. Two roles required to close. Full audit trail.</p>
+        <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.6px' }}>Maker-checker state machine</h2>
+        <p style={{ fontSize: 16, color: '#6B7280', marginBottom: 36 }}>Seven states. Two roles required to close. Full audit trail.</p>
         <div style={{
           display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 32,
           padding: '20px', background: '#F9FAFB', borderRadius: 10, border: '1px solid #e5e7eb',
@@ -208,7 +208,7 @@ export default function Landing() {
       {/* ─ Integrations ─ */}
       <section id="integrations" style={{ background: '#F9FAFB', padding: '80px 32px', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.5px' }}>Integrations</h2>
+          <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 40, letterSpacing: '-0.6px' }}>Integrations</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {[
               { title: 'TallyPrime', body: 'Connects via XML-over-HTTP on port 9000. Sends TDL requests with company name, parses voucher responses, creates ledger entries.' },
