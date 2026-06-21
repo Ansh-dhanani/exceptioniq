@@ -165,11 +165,10 @@ export default function Login() {
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {[
-              { role: 'manager', username: 'manager_u' },
-              { role: 'analyst', username: 'analyst_u' },
-              { role: 'approver', username: 'approver_u' },
-              { role: 'viewer', username: 'viewer_u' },
-              { role: 'admin', username: 'admin_u' },
+              { role: 'manager', username: 'manager' },
+              { role: 'analyst', username: 'analyst' },
+              { role: 'approver', username: 'approver' },
+              { role: 'admin', username: 'admin' },
             ].map(({ role, username: uname }) => (
               <button
                 key={uname}
@@ -177,7 +176,7 @@ export default function Login() {
                   setLoading(true)
                   setError('')
                   try {
-                    const userData = await login(uname, 'testpass123')
+                    const userData = await login(uname, uname)
                     redirectAfterLogin(userData)
                   } catch (err: any) {
                     setError(err.message || 'Login failed.')
