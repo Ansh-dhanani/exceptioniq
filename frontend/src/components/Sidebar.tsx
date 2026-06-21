@@ -74,6 +74,14 @@ export default function Sidebar() {
                 </NavLink>
             </li>
           )}
+
+          {role === 'manager' && (
+            <li>
+                <NavLink to="/app/org/settings" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                  🏢 Org Settings
+                </NavLink>
+            </li>
+          )}
         </ul>
       </nav>
     </aside>

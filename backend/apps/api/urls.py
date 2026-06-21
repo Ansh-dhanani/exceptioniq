@@ -4,6 +4,7 @@ from .views import (
     EntityViewSet, RoutingRuleViewSet, ExceptionViewSet,
     ReconciliationViewSet, UserViewSet, health, auth_login, auth_logout, me
 )
+import apps.organizations.views as org_views
 from apps.gst.views import GSTViewSet
 from apps.tds.views import TDSViewSet
 from apps.vendors.views import VendorViewSet
@@ -31,5 +32,6 @@ urlpatterns = [
     path('auth/login/', auth_login, name='auth-login'),
     path('auth/logout/', auth_logout, name='auth-logout'),
     path('auth/me/', me, name='auth-me'),
+    path('org/', include('apps.organizations.urls')),
     path('', include(router.urls)),
 ]

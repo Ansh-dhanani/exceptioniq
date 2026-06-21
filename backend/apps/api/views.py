@@ -39,6 +39,8 @@ def auth_login(request):
             'role': user.role,
             'first_name': user.first_name,
             'last_name': user.last_name,
+            'organization': str(user.organization.id) if user.organization else None,
+            'organization_name': user.organization.name if user.organization else None,
         })
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -58,6 +60,8 @@ def me(request):
         'role': request.user.role,
         'first_name': request.user.first_name,
         'last_name': request.user.last_name,
+        'organization': str(request.user.organization.id) if request.user.organization else None,
+        'organization_name': request.user.organization.name if request.user.organization else None,
     })
 
 class EntityViewSet(viewsets.ModelViewSet):

@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'apps.vendors',
     'apps.close',
     'apps.integrations',
+    'apps.organizations',
     'apps.api',
 ]
 

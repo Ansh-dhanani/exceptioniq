@@ -10,3 +10,10 @@ class User(AbstractUser):
         ('viewer', 'Viewer'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='analyst')
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='members'
+    )

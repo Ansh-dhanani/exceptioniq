@@ -5,6 +5,8 @@ import App from './App'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import OrgSetup from './pages/OrgSetup'
+import OrgSettings from './pages/OrgSettings'
 import ExceptionQueue from './pages/ExceptionQueue'
 import ExceptionDetail from './pages/ExceptionDetail'
 import Ingestion from './pages/Ingestion'
@@ -27,6 +29,10 @@ const router = createBrowserRouter([
     element: <Login />,
   },
   {
+    path: '/org/setup',
+    element: <OrgSetup />,
+  },
+  {
     path: '/app',
     element: <App />,
     children: [
@@ -41,6 +47,7 @@ const router = createBrowserRouter([
       { path: 'close', element: <MonthEndClose /> },
       { path: 'integrations', element: <Integrations /> },
       { path: 'routing-rules', element: <RoutingRules /> },
+      { path: 'org/settings', element: <OrgSettings /> },
       { path: '*', element: <Navigate to="/app/dashboard" replace /> }
     ],
   },

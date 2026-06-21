@@ -8,12 +8,15 @@ export type User = {
   role: string;
   first_name?: string;
   last_name?: string;
+  organization?: string | null;
+  organization_name?: string | null;
 }
 
 type AuthCtx = {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  hasOrg: boolean;
+  login: (username: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -39,14 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const handleLogin = async (username: string, password: string) => {
-    try {
-      const data = await client.post('/auth/login/', { username, password })
-      setUser(data)
-      localStorage.setItem('currentUserRole', data.role)
-    } catch (err: any) {
-      throw new Error(err.message || 'Login failed')
-    }
+    const data = await client.post('/auth/login/', { username, password })
+    setUser(data)
+    localStorage.setItem('currentUserRole', data.role)
+    return data
   }
+
+  const hasOrg = !!user?.organization
 
   const handleLogout = async () => {
     try {
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login: handleLogin, logout: handleLogout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login: handleLogin, logout: handleLogout, refreshUser, hasOrg }}>
       {children}
     </AuthContext.Provider>
   )

@@ -12,7 +12,15 @@ export default function Login() {
   const [error, setError] = useState('')
 
   if (user) {
-    return <Navigate to="/app/dashboard" replace />
+    return <Navigate to={user.organization ? "/app/dashboard" : "/org/setup"} replace />
+  }
+
+  const redirectAfterLogin = (userData: any) => {
+    if (userData.organization) {
+      navigate('/app/dashboard')
+    } else {
+      navigate('/org/setup')
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,8 +32,8 @@ export default function Login() {
     setLoading(true)
     setError('')
     try {
-      await login(username.trim(), password.trim())
-      navigate('/app/dashboard')
+      const userData = await login(username.trim(), password.trim())
+      redirectAfterLogin(userData)
     } catch (err: any) {
       setError(err.message || 'Invalid username or password.')
     } finally {
@@ -37,8 +45,8 @@ export default function Login() {
     setLoading(true)
     setError('')
     try {
-      await login(role, role)
-      navigate('/app/dashboard')
+      const userData = await login(role, role)
+      redirectAfterLogin(userData)
     } catch (err: any) {
       setError(err.message || `Quick login failed for ${role}`)
     } finally {

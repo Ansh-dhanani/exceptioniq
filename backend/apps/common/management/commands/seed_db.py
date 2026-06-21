@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from apps.entities.models import Entity
+from apps.organizations.models import Organization
 from apps.routing.models import RoutingRule
 from apps.reconciliation.models import Batch, LedgerEntry, BankStatementLine
 from apps.exceptions_app.models import ExceptionRecord, ExceptionComment, AuditLog
@@ -51,6 +52,20 @@ class Command(BaseCommand):
                 user.save()
             users[role] = user
             self.stdout.write(f'Seeded User: {username} ({role})')
+
+        # 2b. Create default Organization and assign all users
+        org, _ = Organization.objects.get_or_create(
+            code='acme-corporation',
+            defaults={
+                'name': 'Acme Corporation',
+                'created_by': users.get('manager'),
+            }
+        )
+        for user in users.values():
+            if not user.organization:
+                user.organization = org
+                user.save(update_fields=['organization'])
+        self.stdout.write(f'Seeded Organization: {org.name}')
 
         # 3. Create default Routing Rules
         rules = [
