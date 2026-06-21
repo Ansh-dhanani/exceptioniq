@@ -17,12 +17,12 @@ export default function Sidebar() {
       <nav style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 64px)', justifyContent: 'space-between' }}>
         <ul className="sidebar-menu">
           <li>
-            <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <NavLink to="/app/dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
               📊 Dashboard
             </NavLink>
           </li>
           <li>
-            <NavLink to="/exceptions" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <NavLink to="/app/exceptions" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
               🔍 Exceptions Queue
             </NavLink>
           </li>
@@ -30,17 +30,17 @@ export default function Sidebar() {
           {showIngestion && (
             <>
               <li>
-                <NavLink to="/ingestion" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/app/ingestion" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
                   📥 Data Ingestion
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/gst" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/app/gst" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
                   📄 GST Recon
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/tds" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/app/tds" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
                   💼 TDS Recon
                 </NavLink>
               </li>
@@ -48,30 +48,30 @@ export default function Sidebar() {
           )}
 
           <li>
-            <NavLink to="/vendors" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <NavLink to="/app/vendors" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
               👥 Vendors
             </NavLink>
           </li>
 
           <li>
-            <NavLink to="/close" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <NavLink to="/app/close" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
               🏁 Month-End Close
             </NavLink>
           </li>
 
           {showIntegrations && (
             <li>
-              <NavLink to="/integrations" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                🔗 Integrations
-              </NavLink>
+                <NavLink to="/app/integrations" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                  🔗 Integrations
+                </NavLink>
             </li>
           )}
           
           {showRouting && (
             <li>
-              <NavLink to="/routing-rules" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                ⚙️ Routing Rules
-              </NavLink>
+                <NavLink to="/app/routing-rules" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                  ⚙️ Routing Rules
+                </NavLink>
             </li>
           )}
         </ul>

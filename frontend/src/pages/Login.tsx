@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
@@ -12,22 +12,20 @@ export default function Login() {
   const [error, setError] = useState('')
 
   if (user) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/app/dashboard" replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!username.trim() || !password.trim()) {
-      setError('Please enter both username and password.')
+      setError('Enter both username and password.')
       return
     }
-
     setLoading(true)
     setError('')
-
     try {
       await login(username.trim(), password.trim())
-      navigate('/dashboard')
+      navigate('/app/dashboard')
     } catch (err: any) {
       setError(err.message || 'Invalid username or password.')
     } finally {
@@ -40,7 +38,7 @@ export default function Login() {
     setError('')
     try {
       await login(role, role)
-      navigate('/dashboard')
+      navigate('/app/dashboard')
     } catch (err: any) {
       setError(err.message || `Quick login failed for ${role}`)
     } finally {
@@ -54,126 +52,155 @@ export default function Login() {
       minHeight: '100vh',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'var(--color-bg)',
-      padding: '24px'
+      background: '#f9fafb',
+      padding: '24px',
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '440px',
-        background: '#ffffff',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius)',
-        boxShadow: 'var(--shadow-card)',
-        padding: '36px'
+        maxWidth: 400,
+        background: '#fff',
+        border: '1px solid #e5e7eb',
+        borderRadius: 10,
+        padding: '32px',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '28px', color: 'var(--color-text)', fontWeight: 700, margin: '0 0 8px 0' }}>ExceptionIQ</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', margin: 0 }}>Maker-Checker Reconciliation Platform</p>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: '0 0 4px 0', letterSpacing: '-0.3px' }}>
+              ExceptionIQ
+            </h1>
+          </Link>
+          <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+            Sign in to your workspace
+          </p>
         </div>
 
         {error && (
           <div style={{
-            background: 'var(--color-danger-bg)',
-            border: '1px solid #fca5a5',
-            borderRadius: '4px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: 6,
             color: '#991b1b',
-            fontSize: '13px',
-            padding: '12px',
-            marginBottom: '20px',
-            fontWeight: 500
+            fontSize: 13,
+            padding: '10px 14px',
+            marginBottom: 16,
+            fontWeight: 500,
           }}>
-            ⚠️ {error}
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Username</label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4, display: 'block' }}>
+              Username
+            </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. analyst"
-              className="form-input"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: 13,
+                borderRadius: 6,
+                border: '1px solid #d1d5db',
+                background: '#fff',
+                color: '#111827',
+                outline: 'none',
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#3B4EFF'}
+              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
               required
             />
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Password</label>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4, display: 'block' }}>
+              Password
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="form-input"
+              placeholder="......"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: 13,
+                borderRadius: 6,
+                border: '1px solid #d1d5db',
+                background: '#fff',
+                color: '#111827',
+                outline: 'none',
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#3B4EFF'}
+              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
               required
             />
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: '100%', marginTop: '8px', height: '42px', fontWeight: 600 }}
+            style={{
+              width: '100%',
+              padding: '9px 0',
+              background: '#111827',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              opacity: loading ? 0.7 : 1,
+            }}
             disabled={loading}
           >
-            {loading ? 'Authenticating...' : 'Sign In'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
         <div style={{
-          marginTop: '32px',
-          borderTop: '1px solid var(--color-border)',
-          paddingTop: '24px'
+          marginTop: 28,
+          borderTop: '1px solid #e5e7eb',
+          paddingTop: 20,
         }}>
           <div style={{
-            fontSize: '11px',
+            fontSize: 11,
             fontWeight: 600,
+            color: '#6b7280',
             textTransform: 'uppercase',
-            color: 'var(--color-text-secondary)',
             letterSpacing: '0.5px',
-            marginBottom: '12px',
-            textAlign: 'center'
+            marginBottom: 10,
+            textAlign: 'center',
           }}>
-            Developer Bypass Roles
+            Demo accounts
           </div>
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '8px'
+            gap: 6,
           }}>
-            <button
-              onClick={() => handleQuickLogin('analyst')}
-              className="btn btn-secondary"
-              style={{ fontSize: '12px', padding: '8px' }}
-              disabled={loading}
-            >
-              💼 Analyst
-            </button>
-            <button
-              onClick={() => handleQuickLogin('approver')}
-              className="btn btn-secondary"
-              style={{ fontSize: '12px', padding: '8px' }}
-              disabled={loading}
-            >
-              ✍️ Approver
-            </button>
-            <button
-              onClick={() => handleQuickLogin('manager')}
-              className="btn btn-secondary"
-              style={{ fontSize: '12px', padding: '8px' }}
-              disabled={loading}
-            >
-              📈 Manager
-            </button>
-            <button
-              onClick={() => handleQuickLogin('admin')}
-              className="btn btn-secondary"
-              style={{ fontSize: '12px', padding: '8px' }}
-              disabled={loading}
-            >
-              🔑 Admin
-            </button>
+            {['admin', 'manager', 'approver', 'analyst'].map((role) => (
+              <button
+                key={role}
+                onClick={() => handleQuickLogin(role)}
+                style={{
+                  padding: '7px 0',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: '#fff',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  textTransform: 'capitalize',
+                }}
+                disabled={loading}
+              >
+                {role}
+              </button>
+            ))}
           </div>
         </div>
       </div>

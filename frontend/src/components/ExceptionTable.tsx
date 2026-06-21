@@ -48,7 +48,7 @@ export default function ExceptionTable({ exceptions }: ExceptionTableProps) {
             {exceptions.map(exc => (
               <tr key={exc.id}>
                 <td style={{ fontWeight: 600 }}>
-                  <Link to={`/exceptions/${exc.id}`} style={{ color: 'var(--color-primary)' }}>
+                  <Link to={`/app/exceptions/${exc.id}`} style={{ color: 'var(--color-primary)' }}>
                     {exc.id.slice(0, 8).toUpperCase()}
                   </Link>
                 </td>
@@ -81,7 +81,7 @@ export default function ExceptionTable({ exceptions }: ExceptionTableProps) {
                   <SlaCountdown deadlineStr={exc.sla_deadline} status={exc.status} />
                 </td>
                 <td style={{ textAlign: 'center' }}>
-                  <Link to={`/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '11px' }}>
+                  <Link to={`/app/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '11px' }}>
                     🔍 Investigate
                   </Link>
                 </td>

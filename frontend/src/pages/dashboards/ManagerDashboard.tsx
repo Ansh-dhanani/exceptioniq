@@ -52,11 +52,9 @@ export default function ManagerDashboard({ entityId, user }: Props) {
       const userData = await client.get('/users/')
       setUsers(Array.isArray(userData) ? userData : userData.results || [])
 
-      // Fetch vendors
       const vendorData = await client.get(`/vendors/?entity=${entityId}`)
       setVendors(Array.isArray(vendorData) ? vendorData : vendorData.results || [])
 
-      // Fetch Close Periods
       const closePeriods = await client.get(`/close/?entity=${entityId}`)
       const periodsList = Array.isArray(closePeriods) ? closePeriods : closePeriods.results || []
       if (periodsList.length > 0) {
@@ -82,7 +80,6 @@ export default function ManagerDashboard({ entityId, user }: Props) {
     try {
       await client.post(`/exceptions/${exceptionId}/reassign/`, { user_id: newUserId })
       alert('Exception reassigned successfully.')
-      // Refresh local data
       const excData = await client.get(`/exceptions/?entity=${entityId}`)
       setExceptions(Array.isArray(excData) ? excData : excData.results || [])
     } catch (err: any) {
@@ -93,19 +90,16 @@ export default function ManagerDashboard({ entityId, user }: Props) {
   }
 
   if (loading) {
-    return <div style={{ padding: '24px' }}>Loading Manager Dashboard...</div>
+    return <div style={{ padding: '24px' }}>Loading...</div>
   }
 
   const now = new Date()
   const nowTime = now.getTime()
   const todayStr = now.toISOString().slice(0, 10)
 
-  // Filter open exceptions (unresolved and not closed)
   const openExceptions = exceptions.filter(e => e.status !== 'closed' && e.status !== 'approved')
 
-  // Calculate Aging Buckets for Open Exceptions
   let age0_3 = 0, age4_7 = 0, age8_14 = 0, age15_30 = 0, age30Plus = 0
-
   openExceptions.forEach(exc => {
     const createdDate = new Date(exc.created_at)
     const ageDays = Math.floor((nowTime - createdDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -117,19 +111,16 @@ export default function ManagerDashboard({ entityId, user }: Props) {
   })
 
   const agingData = [
-    { range: '0–3d', count: age0_3 },
-    { range: '4–7d', count: age4_7 },
-    { range: '8–14d', count: age8_14 },
-    { range: '15–30d', count: age15_30 },
+    { range: '0-3d', count: age0_3 },
+    { range: '4-7d', count: age4_7 },
+    { range: '8-14d', count: age8_14 },
+    { range: '15-30d', count: age15_30 },
     { range: '30d+', count: age30Plus },
   ]
 
-  // SLA breach status
   const breachedCount = openExceptions.filter(e => e.sla_deadline && new Date(e.sla_deadline).getTime() < nowTime).length
   const breachRate = openExceptions.length > 0 ? Math.round((breachedCount / openExceptions.length) * 100) : 0
 
-  // Team Workload calculation
-  // Filter for analysts/approvers/managers
   const activeStaff = users.filter(u => u.role === 'analyst' || u.role === 'manager')
 
   const teamWorkload = activeStaff.map(staffMember => {
@@ -158,7 +149,6 @@ export default function ManagerDashboard({ entityId, user }: Props) {
     }
   }).sort((a, b) => b.open - a.open)
 
-  // Escalated Queue: high or critical severity, status investigating, or status routed
   const escalatedExceptions = openExceptions.filter(e =>
     e.severity === 'high' || e.severity === 'critical'
   ).sort((a, b) => {
@@ -175,63 +165,41 @@ export default function ManagerDashboard({ entityId, user }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Operations Manager Dashboard 📈</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Monitor queue health, SLA breaches, and balance team resource allocation.</p>
-        </div>
+        <h1 style={{ margin: 0 }}>Operations Manager Dashboard</h1>
         <button
           onClick={handleExportPDF}
           disabled={exporting}
           className="btn btn-primary"
-          style={{
-            padding: '10px 18px',
-            fontSize: '13px',
-            fontWeight: '600',
-            color: '#ffffff',
-            backgroundColor: '#3B4EFF',
-            border: 'none',
-            borderRadius: '6px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(59, 78, 255, 0.2)'
-          }}
         >
-          {exporting ? 'Generating Report...' : '📄 Export Executive Report'}
+          {exporting ? 'Generating...' : 'Export Executive Report'}
         </button>
       </div>
 
-      {/* Metrics Row */}
       <div className="grid-3">
-        <div className="stat-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
+        <div className="stat-card">
           <div className="stat-label">Total Open Exceptions</div>
           <div className="stat-value">{openExceptions.length}</div>
-          <div className="stat-sub">Across all staff and queues</div>
+          <div className="stat-sub">Across all queues</div>
         </div>
 
-        <div className="stat-card" style={{ borderLeft: '4px solid #ef4444', background: breachedCount > 0 ? '#fef2f2' : 'none' }}>
-          <div className="stat-label" style={{ color: breachedCount > 0 ? '#b91c1c' : 'inherit' }}>Total Breached SLA</div>
+        <div className="stat-card" style={{ background: breachedCount > 0 ? '#fef2f2' : 'none' }}>
+          <div className="stat-label" style={{ color: breachedCount > 0 ? '#b91c1c' : 'inherit' }}>SLA Breached</div>
           <div className="stat-value" style={{ color: breachedCount > 0 ? '#b91c1c' : 'inherit' }}>{breachedCount}</div>
-          <div className="stat-sub">SLA breach rate: {breachRate}% of open queue</div>
+          <div className="stat-sub">Breach rate: {breachRate}% of open queue</div>
         </div>
 
-        <div className="stat-card" style={{ borderLeft: '4px solid var(--color-resolved)' }}>
-          <div className="stat-label">Resolutions Today</div>
+        <div className="stat-card">
+          <div className="stat-label">Resolved Today</div>
           <div className="stat-value">
             {exceptions.filter(e => e.status === 'resolved' && e.resolved_at?.startsWith(todayStr)).length}
           </div>
-          <div className="stat-sub">Marked resolved since midnight</div>
+          <div className="stat-sub">Since midnight</div>
         </div>
       </div>
 
-      {/* Compliance & Operations Row */}
       <div className="grid-2">
-        {/* Month-End Close Progress */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.05)', filter: 'blur(20px)' }} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month-End Close Progress</span>
             <span style={{
               fontSize: '11px',
@@ -247,7 +215,7 @@ export default function ManagerDashboard({ entityId, user }: Props) {
           </div>
 
           {latestClosePeriod ? (
-            <div style={{ marginTop: '8px' }}>
+            <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Period: <b>{latestClosePeriod.period}</b></span>
                 <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)' }}>
@@ -271,40 +239,34 @@ export default function ManagerDashboard({ entityId, user }: Props) {
 
               <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'flex', gap: '12px' }}>
                 <span>Completed: <b>{latestClosePeriod.items?.filter(it => it.is_complete).length}</b> of <b>{latestClosePeriod.items?.length}</b></span>
-                <span>•</span>
                 <span>Critical Remaining: <b style={{ color: latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length ? '#dc2626' : 'inherit' }}>
                   {latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length}
                 </b></span>
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: '12px', color: 'var(--color-text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
-              No active month-end close checklist generated.
+            <div style={{ color: 'var(--color-text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
+              No active checklist.
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
-            <span style={{ color: 'var(--color-text-secondary)' }}>
-              Checklist Tasks: {latestClosePeriod?.items?.length || 0} total items
-            </span>
-            <Link to="/close" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>{latestClosePeriod?.items?.length || 0} checklist items</span>
+            <Link to="/app/close" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
               Orchestrate Close →
             </Link>
           </div>
         </div>
 
-        {/* Vendor Risk Summary */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.05)', filter: 'blur(20px)' }} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Counterparty Risk Assessment</span>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Counterparty Risk</span>
             <span style={{ fontSize: '11px', background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>90-Day Rolling</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', marginTop: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
             <div>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Total Vendor Amount at Risk</div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Amount at Risk</div>
               <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-text)', marginTop: '4px', letterSpacing: '-0.5px' }}>
                 ₹{totalVendorAmountAtRisk.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </div>
@@ -312,25 +274,23 @@ export default function ManagerDashboard({ entityId, user }: Props) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', padding: '2px 6px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '4px' }}>
-                <span style={{ color: '#b91c1c', fontWeight: 600 }}>🔴 Red Risk:</span>
+                <span style={{ color: '#b91c1c', fontWeight: 600 }}>Red:</span>
                 <span style={{ fontWeight: 700, color: '#b91c1c' }}>{redVendors}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', padding: '2px 6px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '4px' }}>
-                <span style={{ color: '#d97706', fontWeight: 600 }}>🟡 Amber Risk:</span>
+                <span style={{ color: '#d97706', fontWeight: 600 }}>Amber:</span>
                 <span style={{ fontWeight: 700, color: '#d97706' }}>{amberVendors}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', padding: '2px 6px', background: '#f0fdf4', border: '1px solid #d1fae5', borderRadius: '4px' }}>
-                <span style={{ color: '#15803d', fontWeight: 600 }}>🟢 Green Risk:</span>
+                <span style={{ color: '#15803d', fontWeight: 600 }}>Green:</span>
                 <span style={{ fontWeight: 700, color: '#15803d' }}>{greenVendors}</span>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
-            <span style={{ color: 'var(--color-text-secondary)' }}>
-              Monitored Vendors: {vendors.length} total
-            </span>
-            <Link to="/vendors" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>{vendors.length} vendors monitored</span>
+            <Link to="/app/vendors" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
               Manage Vendor Risk →
             </Link>
           </div>
@@ -338,11 +298,10 @@ export default function ManagerDashboard({ entityId, user }: Props) {
       </div>
 
       <div className="grid-2">
-        {/* Exception Aging Chart */}
         <div className="card">
           <h2>Active Exception Aging (Days)</h2>
           <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
-            Count of open cases bucketed by duration since detection.
+            Open cases by duration since detection.
           </p>
           <div className="chart-container" style={{ height: '220px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -361,25 +320,23 @@ export default function ManagerDashboard({ entityId, user }: Props) {
           </div>
         </div>
 
-        {/* Team Workload Table */}
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)' }}>Team Resource Allocation</h2>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Current workload distribution and breach counts per team member.</p>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Team Resource Allocation</h2>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Resource</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Open Cases</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Resolved Today</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Breached</th>
+                <tr>
+                  <th>Resource</th>
+                  <th style={{ textAlign: 'center' }}>Open Cases</th>
+                  <th style={{ textAlign: 'center' }}>Resolved Today</th>
+                  <th style={{ textAlign: 'center' }}>Breached</th>
                 </tr>
               </thead>
               <tbody>
                 {teamWorkload.map(item => (
-                  <tr key={item.user.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <tr key={item.user.id}>
                     <td style={{ padding: '12px 20px', fontSize: '13px', fontWeight: 500 }}>
                       @{item.user.username} <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>({item.user.role})</span>
                     </td>
@@ -400,29 +357,27 @@ export default function ManagerDashboard({ entityId, user }: Props) {
         </div>
       </div>
 
-      {/* Escalations & Assignment Control */}
       <div className="card" style={{ padding: 0 }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)' }}>High Priority / Escalated Queue ({escalatedExceptions.length})</h2>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Critical items needing resource reassignment or immediate resolution.</p>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>High Priority Queue ({escalatedExceptions.length})</h2>
         </div>
 
         {escalatedExceptions.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
             <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Code</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Severity</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Assignee</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Amount</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Reassign</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Inspect</th>
+                <tr>
+                  <th>Code</th>
+                  <th>Severity</th>
+                  <th>Assignee</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'center' }}>Reassign</th>
+                  <th style={{ textAlign: 'center' }}>Inspect</th>
                 </tr>
               </thead>
               <tbody>
                 {escalatedExceptions.map(exc => (
-                  <tr key={exc.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <tr key={exc.id}>
                     <td style={{ padding: '12px 20px', fontSize: '13px', fontWeight: 600 }}>
                       {exc.exception_code}
                     </td>
@@ -448,15 +403,15 @@ export default function ManagerDashboard({ entityId, user }: Props) {
                           background: '#fff'
                         }}
                       >
-                        <option value="">-- Reassign to --</option>
+                        <option value="">Reassign to...</option>
                         {users.map(u => (
                           <option key={u.id} value={u.id}>@{u.username} ({u.role})</option>
                         ))}
                       </select>
                     </td>
                     <td style={{ padding: '12px 20px', textAlign: 'center' }}>
-                      <Link to={`/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '11px', textDecoration: 'none' }}>
-                        Inspect 🔍
+                      <Link to={`/app/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '11px', textDecoration: 'none' }}>
+                        Inspect
                       </Link>
                     </td>
                   </tr>
@@ -466,7 +421,7 @@ export default function ManagerDashboard({ entityId, user }: Props) {
           </div>
         ) : (
           <div style={{ padding: '30px 24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-            No high-priority or escalated exceptions outstanding.
+            No high-priority exceptions.
           </div>
         )}
       </div>

@@ -22,7 +22,6 @@ export default function ViewerDashboard({ entityId, user }: Props) {
       const data = await client.get(`/exceptions/?entity=${entityId}`)
       setExceptions(Array.isArray(data) ? data : data.results || [])
 
-      // Fetch close periods
       const closePeriods = await client.get(`/close/?entity=${entityId}`)
       const periodsList = Array.isArray(closePeriods) ? closePeriods : closePeriods.results || []
       if (periodsList.length > 0) {
@@ -43,7 +42,7 @@ export default function ViewerDashboard({ entityId, user }: Props) {
   }, [entityId])
 
   if (loading) {
-    return <div style={{ padding: '24px' }}>Loading Viewer Dashboard...</div>
+    return <div style={{ padding: '24px' }}>Loading...</div>
   }
 
   const openExceptions = exceptions.filter(e => e.status !== 'closed' && e.status !== 'approved')
@@ -53,12 +52,8 @@ export default function ViewerDashboard({ entityId, user }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Welcome, {user.first_name || user.username} 👁️</h1>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Read-only reconciliation viewer workspace.</p>
-      </div>
+      <h1>Viewer Dashboard</h1>
 
-      {/* Month-End Close Status Banner */}
       {latestClosePeriod && (
         <div style={{
           background: latestClosePeriod.status === 'closed' ? '#f0fdf4' : '#eff6ff',
@@ -69,18 +64,15 @@ export default function ViewerDashboard({ entityId, user }: Props) {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '20px' }}>{latestClosePeriod.status === 'closed' ? '✅' : '📅'}</span>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '14px', color: latestClosePeriod.status === 'closed' ? '#166534' : '#1e40af' }}>
-                Month-End Close ({latestClosePeriod.period}): {latestClosePeriod.status === 'closed' ? 'Period Closed' : latestClosePeriod.status === 'in_progress' ? 'In Progress' : 'Open'}
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                {latestClosePeriod.status === 'closed'
-                  ? `Closed by ${latestClosePeriod.closed_by?.username || 'System'} on ${new Date(latestClosePeriod.closed_at || '').toLocaleDateString()}`
-                  : `${latestClosePeriod.items?.filter(it => it.is_complete).length || 0} of ${latestClosePeriod.items?.length || 0} checklist items completed`
-                }
-              </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '14px', color: latestClosePeriod.status === 'closed' ? '#166534' : '#1e40af' }}>
+              Month-End Close ({latestClosePeriod.period}): {latestClosePeriod.status === 'closed' ? 'Period Closed' : latestClosePeriod.status === 'in_progress' ? 'In Progress' : 'Open'}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+              {latestClosePeriod.status === 'closed'
+                ? `Closed by ${latestClosePeriod.closed_by?.username || 'System'} on ${new Date(latestClosePeriod.closed_at || '').toLocaleDateString()}`
+                : `${latestClosePeriod.items?.filter(it => it.is_complete).length || 0} of ${latestClosePeriod.items?.length || 0} items completed`
+              }
             </div>
           </div>
 
@@ -103,49 +95,46 @@ export default function ViewerDashboard({ entityId, user }: Props) {
         </div>
       )}
 
-      {/* Summary Cards */}
       <div className="grid-3">
         <div className="stat-card">
           <div className="stat-label">Active Exceptions</div>
           <div className="stat-value">{openExceptions.length}</div>
-          <div className="stat-sub">Outstanding issues in progress</div>
+          <div className="stat-sub">Outstanding issues</div>
         </div>
 
-        <div className="stat-card" style={{ borderLeft: '4px solid var(--color-resolved)' }}>
+        <div className="stat-card">
           <div className="stat-label">Resolved & Closed</div>
           <div className="stat-value">{closedExceptions.length}</div>
-          <div className="stat-sub">Fully matched transactions</div>
+          <div className="stat-sub">Fully matched</div>
         </div>
 
-        <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}>
+        <div className="stat-card">
           <div className="stat-label">SLA Breached</div>
           <div className="stat-value">{breachedExceptions.length}</div>
           <div className="stat-sub">Overdue exceptions</div>
         </div>
       </div>
 
-      {/* List of Exceptions */}
       <div className="card" style={{ padding: 0 }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>Exceptions List</h3>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Browse exception statuses and transaction details (Read-Only).</p>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Exceptions</h3>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
           <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
-                <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Code</th>
-                <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Severity</th>
-                <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status</th>
-                <th style={{ padding: '12px 24px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Difference</th>
-                <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Assignee</th>
-                <th style={{ padding: '12px 24px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Details</th>
+              <tr>
+                <th>Code</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Difference</th>
+                <th>Assignee</th>
+                <th style={{ textAlign: 'center' }}>Details</th>
               </tr>
             </thead>
             <tbody>
               {exceptions.slice(0, 15).map(exc => (
-                <tr key={exc.id} style={{ borderBottom: '1px solid var(--color-border)' }} className="table-row">
+                <tr key={exc.id}>
                   <td style={{ padding: '14px 24px', fontSize: '13px', fontWeight: 600 }}>
                     {exc.exception_code}
                   </td>
@@ -159,11 +148,11 @@ export default function ViewerDashboard({ entityId, user }: Props) {
                     ₹{parseFloat(exc.amount_difference).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
                   <td style={{ padding: '14px 24px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>
-                    {exc.assigned_to ? `@${exc.assigned_to.username}` : 'Unassigned'}
+                    {exc.assigned_to ? `@${exc.assigned_to.username}` : '-'}
                   </td>
                   <td style={{ padding: '14px 24px', textAlign: 'center' }}>
-                    <Link to={`/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '11px', textDecoration: 'none' }}>
-                      View Details
+                    <Link to={`/app/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '11px', textDecoration: 'none' }}>
+                      View
                     </Link>
                   </td>
                 </tr>

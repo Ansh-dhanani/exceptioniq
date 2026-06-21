@@ -20,12 +20,10 @@ export default function AnalystDashboard({ entityId, user }: Props) {
     if (!entityId || !user) return
     setLoading(true)
     try {
-      // Fetch open exceptions for this entity
       const data = await client.get(`/exceptions/?entity=${entityId}`)
       const list = Array.isArray(data) ? data : data.results || []
       setExceptions(list)
 
-      // Fetch latest close period checklist
       const closePeriods = await client.get(`/close/?entity=${entityId}`)
       const periodsList = Array.isArray(closePeriods) ? closePeriods : closePeriods.results || []
       if (periodsList.length > 0) {
@@ -46,10 +44,9 @@ export default function AnalystDashboard({ entityId, user }: Props) {
   }, [entityId, user])
 
   if (loading) {
-    return <div style={{ padding: '24px' }}>Loading Analyst Dashboard...</div>
+    return <div style={{ padding: '24px' }}>Loading...</div>
   }
 
-  // Filter My Queue: assigned to me, status IN (routed, investigating)
   const myQueue = exceptions.filter(e =>
     e.assigned_to?.id === user.id &&
     (e.status === 'routed' || e.status === 'investigating')
@@ -59,7 +56,6 @@ export default function AnalystDashboard({ entityId, user }: Props) {
     return new Date(a.sla_deadline).getTime() - new Date(b.sla_deadline).getTime()
   })
 
-  // Compute SLA Urgent: breaching within 8 hours
   const now = new Date().getTime()
   const urgentExceptions = myQueue.filter(e => {
     if (!e.sla_deadline) return false
@@ -68,13 +64,11 @@ export default function AnalystDashboard({ entityId, user }: Props) {
     return diffHours > 0 && diffHours <= 8
   })
 
-  // Stats
   const myOpenCount = exceptions.filter(e =>
     e.assigned_to?.id === user.id &&
     e.status !== 'closed' && e.status !== 'approved'
   ).length
 
-  // Resolved Today: resolved state, resolved_at is today
   const todayStr = new Date().toISOString().slice(0, 10)
   const resolvedToday = exceptions.filter(e =>
     e.assigned_to?.id === user.id &&
@@ -82,7 +76,6 @@ export default function AnalystDashboard({ entityId, user }: Props) {
     e.resolved_at?.startsWith(todayStr)
   ).length
 
-  // My SLA Breached
   const myBreached = exceptions.filter(e =>
     e.assigned_to?.id === user.id &&
     e.status !== 'closed' && e.status !== 'approved' &&
@@ -95,36 +88,25 @@ export default function AnalystDashboard({ entityId, user }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Welcome, {user.first_name || user.username} 💼</h1>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Here is your reconciliation task queue and SLA health summary.</p>
-      </div>
+      <h1>Analyst Dashboard</h1>
 
-      {/* SLA Urgent Alert Band */}
       {urgentExceptions.length > 0 && (
         <div style={{
           background: '#fef2f2',
           borderLeft: '4px solid #ef4444',
           borderRadius: '4px',
-          padding: '16px 20px',
+          padding: '14px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '20px' }}>⚠️</span>
-            <div>
-              <div style={{ fontWeight: 600, color: '#991b1b', fontSize: '14px' }}>
-                SLA Breach Risk: {urgentExceptions.length} exception(s) require immediate action
-              </div>
-              <div style={{ color: '#7f1d1d', fontSize: '12px', marginTop: '2px' }}>
-                These tasks will breach their resolution window within the next 8 hours.
-              </div>
+          <div>
+            <div style={{ fontWeight: 600, color: '#991b1b', fontSize: '14px' }}>
+              {urgentExceptions.length} exception(s) breaching SLA within 8 hours
             </div>
           </div>
           <Link
-            to={`/exceptions/${urgentExceptions[0].id}`}
+            to={`/app/exceptions/${urgentExceptions[0].id}`}
             className="btn"
             style={{
               background: '#ef4444',
@@ -141,31 +123,23 @@ export default function AnalystDashboard({ entityId, user }: Props) {
         </div>
       )}
 
-      {/* Month-End Close Alert Band */}
       {myPendingChecklistCount > 0 && (
         <div style={{
           background: '#e0e7ff',
           borderLeft: '4px solid #4F46E5',
           borderRadius: '4px',
-          padding: '16px 20px',
+          padding: '14px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '20px' }}>⏳</span>
-            <div>
-              <div style={{ fontWeight: 600, color: '#312e81', fontSize: '14px' }}>
-                Month-End Close Action Required: You have {myPendingChecklistCount} pending checklist task(s)
-              </div>
-              <div style={{ color: '#3730a3', fontSize: '12px', marginTop: '2px' }}>
-                Please complete these checklist items for period {latestClosePeriod?.period} to ensure timely compliance.
-              </div>
+          <div>
+            <div style={{ fontWeight: 600, color: '#312e81', fontSize: '14px' }}>
+              {myPendingChecklistCount} pending month-end close task(s)
             </div>
           </div>
           <Link
-            to="/close"
+            to="/app/close"
             className="btn"
             style={{
               background: '#4F46E5',
@@ -177,56 +151,53 @@ export default function AnalystDashboard({ entityId, user }: Props) {
               borderRadius: '4px'
             }}
           >
-            View My Tasks 🔗
+            View My Tasks
           </Link>
         </div>
       )}
 
-      {/* Stats Cards */}
       <div className="grid-3">
-        <div className="stat-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
+        <div className="stat-card">
           <div className="stat-label">My Open Tasks</div>
           <div className="stat-value">{myOpenCount}</div>
-          <div className="stat-sub">Assigned to you, unresolved</div>
+          <div className="stat-sub">Assigned to you</div>
         </div>
 
-        <div className="stat-card" style={{ borderLeft: '4px solid var(--color-resolved)' }}>
+        <div className="stat-card">
           <div className="stat-label">Resolved Today</div>
           <div className="stat-value">{resolvedToday}</div>
-          <div className="stat-sub">Pending maker-checker review</div>
+          <div className="stat-sub">Awaiting review</div>
         </div>
 
-        <div className="stat-card" style={{ borderLeft: '4px solid #ef4444', background: myBreached > 0 ? '#fef2f2' : 'none' }}>
-          <div className="stat-label" style={{ color: myBreached > 0 ? '#b91c1c' : 'inherit' }}>My SLA Breached</div>
+        <div className="stat-card" style={{ background: myBreached > 0 ? '#fef2f2' : 'none' }}>
+          <div className="stat-label" style={{ color: myBreached > 0 ? '#b91c1c' : 'inherit' }}>SLA Breached</div>
           <div className="stat-value" style={{ color: myBreached > 0 ? '#b91c1c' : 'inherit' }}>{myBreached}</div>
-          <div className="stat-sub">Overdue resolution window</div>
+          <div className="stat-sub">Overdue resolution</div>
         </div>
       </div>
 
-      {/* Analyst Queue Section */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)' }}>My Queue ({myQueue.length})</h2>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Open exceptions assigned to your profile, sorted by oldest SLA deadline.</p>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>My Queue ({myQueue.length})</h2>
         </div>
 
         {myQueue.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
             <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Exception Code</th>
-                  <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Severity</th>
-                  <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ padding: '12px 24px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Variance</th>
-                  <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>SLA Deadline</th>
-                  <th style={{ padding: '12px 24px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Action</th>
+                <tr>
+                  <th>Exception Code</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Variance</th>
+                  <th>SLA Deadline</th>
+                  <th style={{ textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {myQueue.map(exc => (
-                  <tr key={exc.id} style={{ borderBottom: '1px solid var(--color-border)' }} className="table-row">
-                    <td style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+                  <tr key={exc.id}>
+                    <td style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600 }}>
                       <div>{exc.exception_code}</div>
                       <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400, marginTop: '2px' }}>ID: {exc.id.slice(0, 8).toUpperCase()}</div>
                     </td>
@@ -236,15 +207,15 @@ export default function AnalystDashboard({ entityId, user }: Props) {
                     <td style={{ padding: '16px 24px' }}>
                       <StatusChip status={exc.status} />
                     </td>
-                    <td style={{ padding: '16px 24px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: parseFloat(exc.amount_difference) > 0 ? 'var(--color-text)' : 'inherit' }}>
+                    <td style={{ padding: '16px 24px', textAlign: 'right', fontSize: '13px', fontWeight: 600 }}>
                       ₹{parseFloat(exc.amount_difference).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                       <SlaCountdown deadlineStr={exc.sla_deadline} status={exc.status} />
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                      <Link to={`/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none', display: 'inline-block' }}>
-                        Investigate 🔍
+                      <Link to={`/app/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none', display: 'inline-block' }}>
+                        Investigate
                       </Link>
                     </td>
                   </tr>
@@ -254,7 +225,7 @@ export default function AnalystDashboard({ entityId, user }: Props) {
           </div>
         ) : (
           <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-            🎉 Excellent work! Your assigned queue is currently empty.
+            Your queue is empty.
           </div>
         )}
       </div>

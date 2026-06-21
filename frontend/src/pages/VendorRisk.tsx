@@ -268,7 +268,7 @@ export default function VendorRisk() {
                     {vendorExceptions.map(exc => (
                       <Link
                         key={exc.id}
-                        to={`/exceptions/${exc.id}`}
+                        to={`/app/exceptions/${exc.id}`}
                         style={{
                           display: 'block',
                           padding: '10px',

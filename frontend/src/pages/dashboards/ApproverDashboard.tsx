@@ -47,7 +47,6 @@ export default function ApproverDashboard({ entityId, user }: Props) {
       const list = Array.isArray(data) ? data : data.results || []
       setExceptions(list)
 
-      // Fetch close periods
       const closePeriods = await client.get(`/close/?entity=${entityId}`)
       const periodsList = Array.isArray(closePeriods) ? closePeriods : closePeriods.results || []
       if (periodsList.length > 0) {
@@ -68,19 +67,16 @@ export default function ApproverDashboard({ entityId, user }: Props) {
   }, [entityId, user])
 
   if (loading) {
-    return <div style={{ padding: '24px' }}>Loading Approver Dashboard...</div>
+    return <div style={{ padding: '24px' }}>Loading...</div>
   }
 
-  // 1. Pending Approval Queue: status == 'resolved', oldest first
   const pendingApprovals = exceptions.filter(e => e.status === 'resolved')
     .sort((a, b) => new Date(a.resolved_at || a.updated_at).getTime() - new Date(b.resolved_at || b.updated_at).getTime())
 
-  // 2. Escalated to Me: assigned_to == me, status == 'investigating'
   const escalatedQueue = exceptions.filter(e =>
     e.assigned_to?.id === user.id && e.status === 'investigating'
   )
 
-  // 3. Recent Activity: last 10 audit logs where I approved/rejected
   const myActivities: { exceptionId: string; code: string; action: string; timestamp: string; metadata: any }[] = []
   exceptions.forEach(exc => {
     (exc.audit_logs || []).forEach((log: AuditLog) => {
@@ -100,49 +96,30 @@ export default function ApproverDashboard({ entityId, user }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Approver Console ✍️</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Verify resolved exceptions and review escalated issues.</p>
-        </div>
+        <h1 style={{ margin: 0 }}>Approver Console</h1>
         <button 
           onClick={handleExportPDF} 
           disabled={exporting}
           className="btn btn-primary"
-          style={{
-            padding: '10px 18px',
-            fontSize: '13px',
-            fontWeight: '600',
-            color: '#ffffff',
-            backgroundColor: '#3B4EFF',
-            border: 'none',
-            borderRadius: '6px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(59, 78, 255, 0.2)'
-          }}
         >
-          {exporting ? 'Generating Report...' : '📄 Export Executive Report'}
+          {exporting ? 'Generating...' : 'Export Executive Report'}
         </button>
       </div>
 
-      {/* Stats row */}
       <div className="grid-3">
-        <div className="stat-card" style={{ borderLeft: '4px solid var(--color-resolved)' }}>
+        <div className="stat-card">
           <div className="stat-label">Pending My Approval</div>
           <div className="stat-value">{pendingApprovals.length}</div>
-          <div className="stat-sub">Awaiting maker-checker signature</div>
+          <div className="stat-sub">Awaiting maker-checker sign-off</div>
         </div>
 
-        <div className="stat-card" style={{ borderLeft: '4px solid var(--color-investigating)' }}>
+        <div className="stat-card">
           <div className="stat-label">Escalated to Me</div>
           <div className="stat-value">{escalatedQueue.length}</div>
-          <div className="stat-sub">Assigned open cases requiring senior review</div>
+          <div className="stat-sub">Open cases requiring senior review</div>
         </div>
 
-        {/* Month-End Close Checklist Status Card */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #10b981', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
+        <div className="stat-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span className="stat-label">Month-End Close Progress</span>
@@ -186,60 +163,57 @@ export default function ApproverDashboard({ entityId, user }: Props) {
                   <span>Completed: <b>{latestClosePeriod.items?.filter(it => it.is_complete).length}</b> / <b>{latestClosePeriod.items?.length}</b></span>
                   {latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length ? (
                     <span style={{ color: '#dc2626', fontWeight: 600 }}>
-                      ⚠️ {latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length} Critical
+                      {latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length} Critical
                     </span>
                   ) : null}
                 </div>
               </div>
             ) : (
               <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontStyle: 'italic', marginTop: '6px' }}>
-                No active checklist generated.
+                No active checklist.
               </div>
             )}
           </div>
           
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '6px', marginTop: '4px', display: 'flex', justifyContent: 'flex-end' }}>
-            <Link to="/close" style={{ color: 'var(--color-primary)', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}>
+            <Link to="/app/close" style={{ color: 'var(--color-primary)', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}>
               View Checklist →
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Main Section */}
       <div className="grid-2">
-        {/* Left Side: Pending Approval Queue */}
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Pending Approval Queue</h3>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Resolved by analysts. Review and verify to close.</p>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Pending Approval ({pendingApprovals.length})</h3>
           </div>
 
           {pendingApprovals.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
               <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
-                    <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Exception</th>
-                    <th style={{ padding: '10px 20px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Amount</th>
-                    <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Review</th>
+                  <tr>
+                    <th>Exception</th>
+                    <th style={{ textAlign: 'right' }}>Amount</th>
+                    <th style={{ textAlign: 'center' }}>Review</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingApprovals.map(exc => (
-                    <tr key={exc.id} style={{ borderBottom: '1px solid var(--color-border)' }} className="table-row">
+                    <tr key={exc.id}>
                       <td style={{ padding: '12px 20px', fontSize: '13px' }}>
                         <div style={{ fontWeight: 600 }}>{exc.exception_code}</div>
                         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                          Resolved code: <span style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 4px', borderRadius: '3px' }}>{exc.resolution_code}</span>
+                          Resolved: <span style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 4px', borderRadius: '3px' }}>{exc.resolution_code}</span>
                         </div>
                       </td>
                       <td style={{ padding: '12px 20px', textAlign: 'right', fontSize: '13px', fontWeight: 600 }}>
                         ₹{parseFloat(exc.amount_difference).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td style={{ padding: '12px 20px', textAlign: 'center' }}>
-                        <Link to={`/exceptions/${exc.id}`} className="btn btn-primary" style={{ padding: '4px 10px', fontSize: '12px', textDecoration: 'none', display: 'inline-block', background: '#8b5cf6' }}>
-                          Review 🔍
+                        <Link to={`/app/exceptions/${exc.id}`} className="btn btn-primary" style={{ padding: '4px 10px', fontSize: '12px', textDecoration: 'none', display: 'inline-block', background: '#8b5cf6' }}>
+                          Review
                         </Link>
                       </td>
                     </tr>
@@ -249,25 +223,22 @@ export default function ApproverDashboard({ entityId, user }: Props) {
             </div>
           ) : (
             <div style={{ padding: '30px 24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-              No exceptions awaiting approval. Great!
+              No exceptions awaiting approval.
             </div>
           )}
         </div>
 
-        {/* Right Side: Escalations & Activity */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Escalations Queue */}
           <div className="card" style={{ padding: 0 }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Escalated To Me</h3>
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Active investigations routed to your attention.</p>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Escalated To Me ({escalatedQueue.length})</h3>
             </div>
             {escalatedQueue.length > 0 ? (
               <div style={{ overflowX: 'auto' }}>
                 <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     {escalatedQueue.map(exc => (
-                      <tr key={exc.id} style={{ borderBottom: '1px solid var(--color-border)' }} className="table-row">
+                      <tr key={exc.id}>
                         <td style={{ padding: '12px 20px', fontSize: '13px' }}>
                           <div style={{ fontWeight: 600 }}>{exc.exception_code}</div>
                           <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>ID: {exc.id.slice(0, 8)}</div>
@@ -276,7 +247,7 @@ export default function ApproverDashboard({ entityId, user }: Props) {
                           <SeverityBadge severity={exc.severity} />
                         </td>
                         <td style={{ padding: '12px 20px', textAlign: 'center' }}>
-                          <Link to={`/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', textDecoration: 'none' }}>
+                          <Link to={`/app/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', textDecoration: 'none' }}>
                             Inspect
                           </Link>
                         </td>
@@ -292,18 +263,16 @@ export default function ApproverDashboard({ entityId, user }: Props) {
             )}
           </div>
 
-          {/* Recent Activity */}
           <div className="card" style={{ padding: 0 }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>My Recent Actions</h3>
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Your last 10 approved or rejected exceptions.</p>
             </div>
             {sortedActivities.length > 0 ? (
               <ul style={{ listStyle: 'none', padding: '12px 24px', margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {sortedActivities.map((act, idx) => (
                   <li key={idx} style={{ fontSize: '12px', borderBottom: idx < sortedActivities.length - 1 ? '1px solid var(--color-border)' : 'none', paddingBottom: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-                      <Link to={`/exceptions/${act.exceptionId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
+                      <Link to={`/app/exceptions/${act.exceptionId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
                         {act.code}
                       </Link>
                       <span style={{
@@ -315,7 +284,7 @@ export default function ApproverDashboard({ entityId, user }: Props) {
                       </span>
                     </div>
                     <div style={{ color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                      {act.metadata?.note || act.metadata?.reason || 'No comment provided.'}
+                      {act.metadata?.note || act.metadata?.reason || '-'}
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
                       {new Date(act.timestamp).toLocaleString()}
@@ -325,7 +294,7 @@ export default function ApproverDashboard({ entityId, user }: Props) {
               </ul>
             ) : (
               <div style={{ padding: '30px 24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                No approval activity recorded yet.
+                No approval activity yet.
               </div>
             )}
           </div>

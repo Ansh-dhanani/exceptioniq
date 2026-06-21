@@ -13,8 +13,10 @@ dist/
 .vscode/
 .DS_Store
 pgdata/
+pymupdf-*.whl
+backend/package-lock.json
 postgres_data/
-frontend/package-lock.json
+# frontend/package-lock.json   # Keep lock file for Render builds
 
 # Test suites temporary/source folders
 exceptioniq_tests/

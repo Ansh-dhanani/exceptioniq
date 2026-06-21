@@ -63,7 +63,6 @@ export default function AdminDashboard({ entityId, user }: Props) {
       const ruleData = await client.get('/routing/rules/')
       setRules(Array.isArray(ruleData) ? ruleData : ruleData.results || [])
 
-      // Fetch GST Runs
       const gstRuns = await client.get(`/gst/?entity=${entityId}`)
       const runsList = Array.isArray(gstRuns) ? gstRuns : gstRuns.results || []
       if (runsList.length > 0) {
@@ -72,7 +71,6 @@ export default function AdminDashboard({ entityId, user }: Props) {
         setLatestGstRun(null)
       }
 
-      // Fetch Close Periods
       const closePeriods = await client.get(`/close/?entity=${entityId}`)
       const periodsList = Array.isArray(closePeriods) ? closePeriods : closePeriods.results || []
       if (periodsList.length > 0) {
@@ -118,14 +116,13 @@ export default function AdminDashboard({ entityId, user }: Props) {
   }
 
   if (loading) {
-    return <div style={{ padding: '24px' }}>Loading Admin Dashboard...</div>
+    return <div style={{ padding: '24px' }}>Loading...</div>
   }
 
   const now = new Date()
   const nowTime = now.getTime()
   const todayStr = now.toISOString().slice(0, 10)
 
-  // 1. Metrics and Aging
   const openExceptions = exceptions.filter(e => e.status !== 'closed' && e.status !== 'approved')
   let age0_3 = 0, age4_7 = 0, age8_14 = 0, age15_30 = 0, age30Plus = 0
   openExceptions.forEach(exc => {
@@ -138,15 +135,14 @@ export default function AdminDashboard({ entityId, user }: Props) {
     else age30Plus++
   })
   const agingData = [
-    { range: '0–3d', count: age0_3 },
-    { range: '4–7d', count: age4_7 },
-    { range: '8–14d', count: age8_14 },
-    { range: '15–30d', count: age15_30 },
+    { range: '0-3d', count: age0_3 },
+    { range: '4-7d', count: age4_7 },
+    { range: '8-14d', count: age8_14 },
+    { range: '15-30d', count: age15_30 },
     { range: '30d+', count: age30Plus },
   ]
   const breachedCount = openExceptions.filter(e => e.sla_deadline && new Date(e.sla_deadline).getTime() < nowTime).length
 
-  // 2. Team workload
   const activeStaff = users.filter(u => u.role === 'analyst' || u.role === 'manager')
   const teamWorkload = activeStaff.map(staffMember => {
     const staffOpen = exceptions.filter(e => e.assigned_to?.id === staffMember.id && e.status !== 'closed' && e.status !== 'approved').length
@@ -160,18 +156,13 @@ export default function AdminDashboard({ entityId, user }: Props) {
     }
   })
 
-  // 3. Escalated queue
   const escalatedExceptions = openExceptions.filter(e => e.severity === 'high' || e.severity === 'critical')
 
-  // 4. Entity Health (Aggregated open/closed/breached counts per entity in entities list)
-  // Let's assume the entity counts are mock-grouped or computed from global lists where applicable
   const entitiesHealthList = entities.map(ent => {
-    // If the active entity is the one queried, we use real counts. Otherwise, generate mock for secondary entity.
     const isCurrent = ent.id === entityId
     const open = isCurrent ? openExceptions.length : Math.max(0, openExceptions.length - 3)
     const breached = isCurrent ? breachedCount : Math.max(0, breachedCount - 1)
     const closed = isCurrent ? exceptions.filter(e => e.status === 'closed' || e.status === 'approved').length : 12
-
     return {
       entity: ent,
       open,
@@ -182,53 +173,33 @@ export default function AdminDashboard({ entityId, user }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>Admin Control Panel 🔑</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>Global system settings, environment statuses, and entity performance.</p>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button 
-            onClick={handleExportPDF} 
-            disabled={exporting}
-            className="btn btn-primary"
-            style={{
-              padding: '10px 18px',
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#ffffff',
-              backgroundColor: '#3B4EFF',
-              border: 'none',
-              borderRadius: '6px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(59, 78, 255, 0.2)'
-            }}
-          >
-            {exporting ? 'Generating...' : '📄 Export Report'}
-          </button>
-          
-          {/* System Health Indicators */}
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
+          <h1 style={{ margin: '0 0 8px 0' }}>Admin Control Panel</h1>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <span style={{ padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
               Django API: <span style={{ fontWeight: 600, color: djangoHealth === 'live' ? '#059669' : '#dc2626' }}>{djangoHealth.toUpperCase()}</span>
-            </div>
-            <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
+            </span>
+            <span style={{ padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
               FastAPI: <span style={{ fontWeight: 600, color: fastapiHealth === 'live' ? '#059669' : '#dc2626' }}>{fastapiHealth.toUpperCase()}</span>
-            </div>
-            <div style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
+            </span>
+            <span style={{ padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: '4px', background: '#fff', fontSize: '12px' }}>
               Database: <span style={{ fontWeight: 600, color: djangoHealth === 'live' ? '#059669' : '#dc2626' }}>ONLINE</span>
-            </div>
+            </span>
+            <button 
+              onClick={handleExportPDF} 
+              disabled={exporting}
+              className="btn btn-primary"
+              style={{ marginLeft: '8px' }}
+            >
+              {exporting ? 'Generating...' : 'Export Report'}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Entity Health Cards */}
       <div>
-        <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: 'var(--color-text-secondary)', marginBottom: '12px', letterSpacing: '0.5px' }}>Entity Performance Cards</h3>
+        <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--color-text-secondary)', marginBottom: '12px', letterSpacing: '0.5px' }}>Entity Performance</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
           {entitiesHealthList.map(item => (
             <div key={item.entity.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -236,7 +207,7 @@ export default function AdminDashboard({ entityId, user }: Props) {
                 <span style={{ fontWeight: 600, fontSize: '15px' }}>{item.entity.name}</span>
                 <span style={{ fontSize: '11px', background: '#f1f5f9', padding: '2px 6px', borderRadius: '3px', fontWeight: 600 }}>{item.entity.code}</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center', marginTop: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center' }}>
                 <div style={{ background: 'var(--color-bg)', padding: '8px', borderRadius: '4px' }}>
                   <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)' }}>Open</div>
                   <div style={{ fontSize: '16px', fontWeight: 700 }}>{item.open}</div>
@@ -255,40 +226,33 @@ export default function AdminDashboard({ entityId, user }: Props) {
         </div>
       </div>
 
-      {/* Compliance & Close Status Section */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
-        {/* GST ITC At Risk Card */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59, 78, 255, 0.05)', filter: 'blur(20px)' }} />
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Compliance Status</span>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Compliance</span>
             <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#4338ca', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>Active Period</span>
           </div>
 
-          <div style={{ marginTop: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>GST Input Tax Credit (ITC) At Risk</div>
+          <div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>ITC at Risk</div>
             <div style={{ fontSize: '28px', fontWeight: 800, color: '#dc2626', marginTop: '4px', letterSpacing: '-0.5px' }}>
               ₹{latestGstRun ? parseFloat(latestGstRun.itc_at_risk).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
             <span style={{ color: 'var(--color-text-secondary)' }}>
-              Latest Run: {latestGstRun ? `${latestGstRun.tax_period} (${latestGstRun.status.toUpperCase()})` : 'No runs executed'}
+              Latest: {latestGstRun ? `${latestGstRun.tax_period} (${latestGstRun.status.toUpperCase()})` : 'No runs'}
             </span>
-            <Link to="/gst" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+            <Link to="/app/gst" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
               Analyze GST →
             </Link>
           </div>
         </div>
 
-        {/* Month-End Close Progress Card */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.05)', filter: 'blur(20px)' }} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month-End Close Progress</span>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month-End Close</span>
             <span style={{
               fontSize: '11px',
               background: latestClosePeriod?.status === 'closed' ? '#d1fae5' : '#fef3c7',
@@ -303,7 +267,7 @@ export default function AdminDashboard({ entityId, user }: Props) {
           </div>
 
           {latestClosePeriod ? (
-            <div style={{ marginTop: '8px' }}>
+            <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Period: <b>{latestClosePeriod.period}</b></span>
                 <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)' }}>
@@ -327,23 +291,20 @@ export default function AdminDashboard({ entityId, user }: Props) {
 
               <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', display: 'flex', gap: '8px' }}>
                 <span>Completed: <b>{latestClosePeriod.items?.filter(it => it.is_complete).length}</b></span>
-                <span>•</span>
                 <span>Critical Remaining: <b style={{ color: latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length ? '#dc2626' : 'inherit' }}>
                   {latestClosePeriod.items?.filter(it => it.is_critical && !it.is_complete).length}
                 </b></span>
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: '12px', color: 'var(--color-text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
-              No active month-end close checklist generated.
+            <div style={{ color: 'var(--color-text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
+              No active checklist.
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
-            <span style={{ color: 'var(--color-text-secondary)' }}>
-              Checklist Tasks: {latestClosePeriod?.items?.length || 0} total items
-            </span>
-            <Link to="/close" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '12px', fontSize: '12px' }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>{latestClosePeriod?.items?.length || 0} checklist items</span>
+            <Link to="/app/close" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
               Open Checklist →
             </Link>
           </div>
@@ -351,10 +312,9 @@ export default function AdminDashboard({ entityId, user }: Props) {
       </div>
 
       <div className="grid-2">
-        {/* Exception Aging Chart */}
         <div className="card">
-          <h2>Active Exception Aging (Days)</h2>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>Count of open cases bucketed by duration since detection.</p>
+          <h2>Active Exception Aging</h2>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>Open cases by duration since detection.</p>
           <div className="chart-container" style={{ height: '200px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={agingData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
@@ -371,11 +331,9 @@ export default function AdminDashboard({ entityId, user }: Props) {
           </div>
         </div>
 
-        {/* Routing Rules & Workload */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>Automated Routing Rules ({rules.length})</h2>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Check rule configuration parameters for matching models.</p>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Routing Rules ({rules.length})</h2>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -386,11 +344,11 @@ export default function AdminDashboard({ entityId, user }: Props) {
                   <span style={{ color: 'var(--color-text-secondary)', marginLeft: '8px' }}>Assign: {rule.assign_to_role.toUpperCase()} ({rule.priority.toUpperCase()})</span>
                 </div>
                 <span style={{ color: rule.active ? '#059669' : '#dc2626', fontWeight: 600 }}>
-                  {rule.active ? '● Active' : '● Inactive'}
+                  {rule.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
             ))}
-            <Link to="/routing-rules" style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 600, textDecoration: 'none', alignSelf: 'flex-start', marginTop: '4px' }}>
+            <Link to="/app/routing-rules" style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 600, textDecoration: 'none', alignSelf: 'flex-start', marginTop: '4px' }}>
               Configure Routing Rules →
             </Link>
           </div>
@@ -398,25 +356,23 @@ export default function AdminDashboard({ entityId, user }: Props) {
       </div>
 
       <div className="grid-2">
-        {/* Resource Allocation */}
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)' }}>Team Resource Allocation</h2>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Current workload distribution and breach counts per team member.</p>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Team Resource Allocation</h2>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Resource</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Open Cases</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Resolved Today</th>
-                  <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Breached</th>
+                <tr>
+                  <th>Resource</th>
+                  <th style={{ textAlign: 'center' }}>Open Cases</th>
+                  <th style={{ textAlign: 'center' }}>Resolved Today</th>
+                  <th style={{ textAlign: 'center' }}>Breached</th>
                 </tr>
               </thead>
               <tbody>
                 {teamWorkload.map(item => (
-                  <tr key={item.user.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <tr key={item.user.id}>
                     <td style={{ padding: '12px 20px', fontSize: '13px', fontWeight: 500 }}>
                       @{item.user.username} <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>({item.user.role})</span>
                     </td>
@@ -436,11 +392,9 @@ export default function AdminDashboard({ entityId, user }: Props) {
           </div>
         </div>
 
-        {/* Escalation Control */}
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)' }}>High Priority / Escalated Queue ({escalatedExceptions.length})</h2>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>Critical items needing resource reassignment or senior attention.</p>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>High Priority Queue ({escalatedExceptions.length})</h2>
           </div>
 
           {escalatedExceptions.length > 0 ? (
@@ -448,7 +402,7 @@ export default function AdminDashboard({ entityId, user }: Props) {
               <table className="table" style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   {escalatedExceptions.slice(0, 5).map(exc => (
-                    <tr key={exc.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <tr key={exc.id}>
                       <td style={{ padding: '12px 20px', fontSize: '13px', fontWeight: 600 }}>
                         {exc.exception_code}
                       </td>
@@ -465,15 +419,15 @@ export default function AdminDashboard({ entityId, user }: Props) {
                           disabled={updatingId === exc.id}
                           style={{ fontSize: '11px', padding: '2px 4px', borderRadius: '4px', border: '1px solid var(--color-border)', background: '#fff' }}
                         >
-                          <option value="">-- Reassign --</option>
+                          <option value="">Reassign</option>
                           {users.map(u => (
                             <option key={u.id} value={u.id}>@{u.username} ({u.role})</option>
                           ))}
                         </select>
                       </td>
                       <td style={{ padding: '12px 20px', textAlign: 'center' }}>
-                        <Link to={`/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '11px', textDecoration: 'none' }}>
-                          Inspect 🔍
+                        <Link to={`/app/exceptions/${exc.id}`} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '11px', textDecoration: 'none' }}>
+                          Inspect
                         </Link>
                       </td>
                     </tr>

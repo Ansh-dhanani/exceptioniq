@@ -248,7 +248,7 @@ export default function ExceptionDetail() {
 
   return (
     <div className="page-container" style={{ padding: 0 }}>
-      <Link to="/exceptions" className="back-link">
+      <Link to="/app/exceptions" className="back-link">
         ← Back to Exceptions Queue
       </Link>
 
@@ -514,7 +514,7 @@ export default function ExceptionDetail() {
                   <span style={{ color: '#dc2626', fontWeight: 600 }}>⚠️ Payment release blocked</span>
                 )}
               </div>
-              <Link to="/vendors" style={{ display: 'inline-block', marginTop: '10px', fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)', textDecoration: 'none' }}>
+              <Link to="/app/vendors" style={{ display: 'inline-block', marginTop: '10px', fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)', textDecoration: 'none' }}>
                 View vendor ledger →
               </Link>
             </div>

@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import App from './App'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import ExceptionQueue from './pages/ExceptionQueue'
@@ -18,14 +19,18 @@ import './index.css'
 
 const router = createBrowserRouter([
   {
+    path: '/',
+    element: <Landing />,
+  },
+  {
     path: '/login',
     element: <Login />,
   },
   {
-    path: '/',
+    path: '/app',
     element: <App />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { index: true, element: <Navigate to="/app/dashboard" replace /> },
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'exceptions', element: <ExceptionQueue /> },
       { path: 'exceptions/:id', element: <ExceptionDetail /> },
@@ -36,7 +41,7 @@ const router = createBrowserRouter([
       { path: 'close', element: <MonthEndClose /> },
       { path: 'integrations', element: <Integrations /> },
       { path: 'routing-rules', element: <RoutingRules /> },
-      { path: '*', element: <Navigate to="/dashboard" replace /> }
+      { path: '*', element: <Navigate to="/app/dashboard" replace /> }
     ],
   },
 ])

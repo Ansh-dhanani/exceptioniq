@@ -85,11 +85,20 @@ AI_SERVICE_URL = os.getenv('AI_SERVICE_URL', 'http://localhost:8001')
 CELERY_RESULT_BACKEND = 'django-db'
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', '0') == '1'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+if os.getenv('FRONTEND_ORIGIN'):
+    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_ORIGIN'))
+
+# Cross-origin cookie support for Railway (frontend + backend on different domains)
+SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', '0') == '1'
+CSRF_COOKIE_SAMESITE = os.getenv('CSRF_COOKIE_SAMESITE', 'Lax')
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', '0') == '1'
+CSRF_TRUSTED_ORIGINS = [o.rstrip('/') for o in CORS_ALLOWED_ORIGINS]
 
