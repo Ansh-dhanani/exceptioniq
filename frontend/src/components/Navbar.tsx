@@ -52,8 +52,11 @@ export default function Navbar({
   }, [])
 
   useEffect(() => {
-    if (entities.length > 0 && !entityId) {
-      setEntityId(entities[0].id)
+    if (entities.length > 0) {
+      const valid = entities.some(e => e.id === entityId)
+      if (!entityId || !valid) {
+        setEntityId(entities[0].id)
+      }
     }
   }, [entities, entityId])
 

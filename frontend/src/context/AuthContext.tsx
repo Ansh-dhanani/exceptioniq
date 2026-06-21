@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Logout failed on server, cleaning up local state', err)
     } finally {
+      localStorage.removeItem('selectedEntityId')
       setUser(null)
     }
   }
